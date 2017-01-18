@@ -69,22 +69,3 @@ class single_interface(metaclass=ABCMeta):
     @abstractmethod
     def w(self):
         pass
-
-'''            
-class box_interface(metaclass=ABCMeta):
-    ## - propertys
-    @property
-    @abstractmethod
-    def u(self):
-        pass
-
-    @property    
-    @abstractmethod
-    def l(self):
-        pass
-    
-    @property
-    @abstractmethod
-    def c(self):
-        pass
-'''
