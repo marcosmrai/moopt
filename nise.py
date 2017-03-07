@@ -74,7 +74,7 @@ class w_node(node_interface):
         self.__w = np.linalg.solve(X,y)[:self.__M]
 
 class nise(bb_interface):
-    def __init__(self, gap=0.01, minsize=50, weightedScalar = None, singleScalar = None):
+    def __init__(self, gap=0.01, minsize=50, weightedScalar = None, singleScalar = None, sols=[]):
         self.__solutionsList = scalar_interface
         self.__solutionsList = w_interface
         if not isinstance(weightedScalar, scalar_interface) or not isinstance(weightedScalar, w_interface) or \
@@ -88,6 +88,7 @@ class nise(bb_interface):
 
         self.__lowerBound = 0
         self.__upperBound = 1
+        self.__solutionsAux = []
         self.__solutionsList = []
         self.__candidatesList = []
 
@@ -226,7 +227,7 @@ class nise(bb_interface):
         node = self.select()
 
         while node!=None and ((self.upperBound-self.lowerBound)/self.upperBound>self.gap or len(self.solutionsList)<self.minsize):
-            solution = node.optimize(oArgs,solutionsList = self.solutionsList)
+            solution = node.optimize(oArgs,solutionsList = self.solutionsList+self.__solutionsAux)
             self.update(node, solution)
             node = self.select()
         self.__fit_runtime = time.clock() - start
