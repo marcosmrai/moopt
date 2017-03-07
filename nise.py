@@ -18,9 +18,8 @@ except:
 from .mo_interface import bb_interface, node_interface
 from .scalarization_interface import scalar_interface, w_interface, single_interface
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
+logger.setLevel(logging.INFO)
 
 class w_node(node_interface):
     def __init__(self, parents, globalL, globalU, weightedScalar):
@@ -181,13 +180,13 @@ class nise(bb_interface):
             self.__branch(node,solution)
             self.solutionsList.append(solution)
         else:
-            logger.info('Not optimal solver or nonconvex problem')
+            logger.debug('Not optimal solver or nonconvex problem')
 
         if self.__candidatesList!=[]:
             self.__lowerBound = self.__upperBound - self.__candidatesList[-1].importance
 
         #gap = (self.upperBound-self.lowerBound)/self.upperBound
-        logger.info('Current state '+str(self.__upperBound)+' '+str(self.__lowerBound)+' '+str(node.importance))
+        logger.debug('Current state '+str(self.__upperBound)+' '+str(self.__lowerBound)+' '+str(node.importance))
 
 
 
