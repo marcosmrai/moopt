@@ -19,7 +19,7 @@ from .mo_interface import bb_interface, node_interface
 from .scalarization_interface import scalar_interface, w_interface, single_interface
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(level=logging.DEBUG)
 
 class w_node(node_interface):
     def __init__(self, parents, globalL, globalU, weightedScalar):
@@ -133,6 +133,7 @@ class nise(bb_interface):
         neigO=[]; parents = []
         for i in range(self.__M):
             singleS = copy.copy(self.__singleScalar)
+            logger.debug('Finding '+str(i)+'th individual minima')
             singleS.mo_optimize(i,*oArgs)
             neigO.append(singleS.objs)
             self.__solutionsList.append(singleS)

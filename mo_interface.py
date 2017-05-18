@@ -11,9 +11,8 @@ except:
 from .mo_utils import mo_show
 
 
-logging.basicConfig(level=logging.INFO)
-#logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.DEBUG)
 
 class node_interface(metaclass=ABCMeta):
     @abstractmethod

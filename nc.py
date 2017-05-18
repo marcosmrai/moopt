@@ -8,8 +8,8 @@ from .mo_interface import bb_interface
 from moopt.scalarization_interface import scalar_interface, single_interface
 from .mo_utils import dominated, mo_metrics
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.DEBUG)
 
 class nc(bb_interface,mo_metrics):
     def __init__(self, gap=0.1,  minsize=50, normalScalar = None, singleScalar = None, correction = 'sanchis'):
@@ -45,7 +45,7 @@ class nc(bb_interface,mo_metrics):
     @property
     def solutionsList(self): return self.__solutionsList
 
-    def __num_sol(self, steps, acc):
+    def __num_sol(self, steps, accum):
         if steps==[]:
             return 1
         else:
@@ -54,8 +54,8 @@ class nc(bb_interface,mo_metrics):
             sols = 0
             i=0
             while True:
-               if acc+i*s<=1:
-                   sols+=self.__num_sol(csteps,acc+i*s)
+               if accum+i*s<=1:
+                   sols+=self.__num_sol(csteps,accum+i*s)
                else:
                    break
                i+=1
@@ -108,15 +108,15 @@ class nc(bb_interface,mo_metrics):
         neigO=[]
         for i in range(self.__M):
             singleS = copy.copy(self.__singleScalar)
+            logger.debug('Finding '+str(i)+'th individual minima')
             singleS.mo_optimize(i,*oArgs)
             neigO.append(singleS.objs)
             self.__solutionsList.append(singleS)
 
         neigO=np.array(neigO)
-        self.__globalL = neigO.min(0)
-        self.__globalU = neigO.max(0)
+        self.__globalL = neigO.min(axis=0)
+        self.__globalU = neigO.max(axis=0)
 
-        #self.__indivB = np.array(neigO)
         if self.__correction == 'sanchis':
             self.__normIndivB = np.ones((self.__M,self.__M))-np.eye(self.__M)
             Mu_ = self.__normIndivB
@@ -125,6 +125,7 @@ class nc(bb_interface,mo_metrics):
         else:
             self.__normIndivB = ((np.array(neigO)-self.__globalL)/(self.__globalU - self.__globalL)).T
             self.__T = np.diag(1/(self.__globalU - self.__globalL))
+            
         self.__Ndir = self.__normIndivB[:,[-1]]-self.__normIndivB[:,:-1]
         mvec = self.__find_steps(self.__minsize)
         self.__combs = [np.array(c) for c in self.__comb(mvec)]
@@ -156,6 +157,7 @@ class nc(bb_interface,mo_metrics):
         """
         if not dominated(solution.objs,self.solutionsList) and solution.feasible:
             self.__solutionsList.append(solution)
+        logger.debug('New solution found. '+str(len(self.__solutionsList))+' solutions')
 
 
     def optimize(self, *oArgs):
@@ -174,6 +176,6 @@ class nc(bb_interface,mo_metrics):
         for comb_ in self.__combs:
             X_ = self.__normIndivB @ comb_
             normalS = copy.copy(self.__normalScalar)
-            normalS.mo_optimize(X_,self.__Ndir, self.__globalL, self.__T, *oArgs, solutionsList=self.__solutionsList)
+            normalS.mo_optimize(X_, self.__Ndir, self.__globalL, self.__T, *oArgs, solutionsList=self.__solutionsList)
             self.update(normalS)
         self.__fit_runtime = time.clock() - start

@@ -1,8 +1,7 @@
 import logging
 
-logging.basicConfig(level=logging.INFO)
-#logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+logger.setLevel(level=logging.DEBUG)
 
 def dominated(objs,solutionList):
     for sol in solutionList:
@@ -10,16 +9,8 @@ def dominated(objs,solutionList):
             return True
     return False
 
-# starting here, must be refactorated
-'''
-try:
-    from .hv import _HyperVolume
-except:
-    import sys
-    sys.path.append('.')
-    from hv import _HyperVolume
-'''
-from .hv import _HyperVolume
+from deap.tools._hypervolume import hv
+
 
 class mo_metrics():
     def hipervolume(self, globalU, globalL):
@@ -31,8 +22,8 @@ class mo_metrics():
         Returns
         -------
         """
-        hv = _HyperVolume((globalU-globalL)/(globalU-globalL))
-        return hv.compute([(solution.objs-globalL)/(globalU-globalL) for solution in self.solutionsList])
+        value = hv.hypervolume([(solution.objs-globalL)/(globalU-globalL) for solution in self.solutionsList],(globalU-globalL)/(globalU-globalL))
+        return value
 
     def inverse_hipervolume(self, globalU, globalL):
         """Calculates the hipervolume of a set of solutions
@@ -43,8 +34,8 @@ class mo_metrics():
         Returns
         -------
         """
-        hv = _HyperVolume((globalL-globalU)/(globalL-globalU))
-        return hv.compute([(solution.objs-globalU)/(globalL-globalU) for solution in self.solutionsList])
+        value = hv.hypervolume([(solution.objs-globalU)/(globalL-globalU) for solution in self.solutionsList],(globalL-globalU)/(globalL-globalU))
+        return value
 
 
 from mpl_toolkits.mplot3d import Axes3D
