@@ -1,5 +1,4 @@
 import numpy as np
-import bisect
 import copy
 import logging
 import time
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.DEBUG)
 
 class nc(bb_interface,mo_metrics):
-    def __init__(self, gap=0.1,  minsize=50, normalScalar = None, singleScalar = None, correction = 'sanchis'):
+    def __init__(self, gap=0.1,  minsize=50, normalScalar = None, singleScalar = None, correction = 'else'):#correction = 'sanchis'):
         self.__solutionsList = scalar_interface
         if not isinstance(normalScalar, scalar_interface) or \
             not isinstance(singleScalar, scalar_interface) or not isinstance(singleScalar, single_interface):
@@ -101,15 +100,12 @@ class nc(bb_interface,mo_metrics):
         Returns
         -------
         """
-        self.__singleScalar.mo_ini(*oArgs)
-        self.__normalScalar.mo_ini(*oArgs)
-
         self.__M = self.__singleScalar.M
         neigO=[]
         for i in range(self.__M):
             singleS = copy.copy(self.__singleScalar)
             logger.debug('Finding '+str(i)+'th individual minima')
-            singleS.mo_optimize(i,*oArgs)
+            singleS.optimize(i)
             neigO.append(singleS.objs)
             self.__solutionsList.append(singleS)
 
@@ -176,6 +172,9 @@ class nc(bb_interface,mo_metrics):
         for comb_ in self.__combs:
             X_ = self.__normIndivB @ comb_
             normalS = copy.copy(self.__normalScalar)
-            normalS.mo_optimize(X_, self.__Ndir, self.__globalL, self.__T, *oArgs, solutionsList=self.__solutionsList)
+            try:
+                normalS.optimize(X_, self.__Ndir, self.__globalL, self.__T, solutionsList=self.__solutionsList)
+            except:
+                normalS.optimize(X_, self.__Ndir, self.__globalL, self.__T)
             self.update(normalS)
         self.__fit_runtime = time.clock() - start

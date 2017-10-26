@@ -4,19 +4,10 @@ import copy
 import logging
 import time
 
-'''
-try:
-    from .mo_interface import bb_interface, node_interface
-    from .scalarization_interface import scalar_interface, w_interface, single_interface
-except:
-    import sys
-    sys.path.append('.')
-    from mo_interface import bb_interface, node_interface
-    from scalarization_interface import scalar_interface, w_interface, single_interface
-'''
-
 from .mo_interface import bb_interface, node_interface
 from .scalarization_interface import scalar_interface, w_interface, single_interface
+
+MAXINT = 200000000000000
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.DEBUG)
@@ -49,10 +40,13 @@ class w_node(node_interface):
     def w(self):
         return self.__w
 
-    def optimize(self, oArgs, solutionsList = None):
+    def optimize(self, hotstart = None):
         """Find the optimizer class"""
         self.__solution = copy.copy(self.__weightedScalar)
-        self.__solution.mo_optimize(self.__w, *oArgs, solutionsList)
+        try:
+            self.__solution.optimize(self.__w, hotstart)
+        except:
+            self.__solution.optimize(self.__w)
         return self.__solution
 
 
@@ -63,8 +57,7 @@ class w_node(node_interface):
 
         p = np.linalg.solve(X,y)
         q = p-self.__w*(np.dot(self.__w, p) - np.dot(self.__w, self.__parents[0].objs))
-        self.__importance = np.dot(self.__w,q-p)**2#*np.dot(self.__w,self.__w)
-        #self.__importance = np.linalg.norm((self.__parents[0].objs-self.__parents[1].objs)/(self.__globalU-self.__globalL),np.inf)#np.inf)
+        self.__importance = np.dot(self.__w,q-p)**2
 
     def __calcW(self):
         X = [[i for i in p.objs]+[-1] for p in self.__parents]
@@ -73,7 +66,7 @@ class w_node(node_interface):
         self.__w = np.linalg.solve(X,y)[:self.__M]
 
 class nise(bb_interface):
-    def __init__(self, gap=0.01, minsize=50, weightedScalar = None, singleScalar = None, sols=[]):
+    def __init__(self, weightedScalar = None, singleScalar = None, target_gap=0.0, min_gap=0.0, target_size=None, min_size=MAXINT, hotstart=[]):
         self.__solutionsList = scalar_interface
         self.__solutionsList = w_interface
         if not isinstance(weightedScalar, scalar_interface) or not isinstance(weightedScalar, w_interface) or \
@@ -82,12 +75,14 @@ class nise(bb_interface):
 
         self.__weightedScalar = weightedScalar
         self.__singleScalar = singleScalar
-        self.__gap = gap
-        self.__minsize = minsize
+        self.__target_gap = target_gap
+        self.__min_gap = min_gap
+        self.__target_size = target_size if target_size!=None else 20*self.__weightedScalar.M
+        self.__min_size = min_size
 
         self.__lowerBound = 0
         self.__upperBound = 1
-        self.__solutionsAux = []
+        self.__hotstart = hotstart
         self.__solutionsList = []
         self.__candidatesList = []
 
@@ -95,10 +90,16 @@ class nise(bb_interface):
         del self.__solutionsList
 
     @property
-    def minsize(self): return self.__minsize
+    def min_size(self): return self.__min_size
+    
+    @property
+    def target_size(self): return self.__target_size
 
     @property
-    def gap(self): return self.__gap
+    def min_gap(self): return self.__min_gap
+
+    @property
+    def target_gap(self): return self.__target_gap
 
     @property
     def upperBound(self): return self.__upperBound
@@ -108,24 +109,20 @@ class nise(bb_interface):
 
     @property
     def solutionsList(self): return self.__solutionsList
+    
+    @property
+    def hotstart(self): return self.__hotstart+self.solutionsList
 
 
-    def inicialization(self,oArgs):
+    def inicialization(self):
         """ Inicializate the objects of the scalarizations.
             Compute the solutions from the individual minima.
             Compute the global inferior bound and the global superior bound.
             Create the first region.
 
-        Parameters
-        ----------
-        oArgs: tuple
-            Arguents used by baseOpt
-
         Returns
         -------
         """
-        self.__singleScalar.mo_ini(*oArgs)
-        self.__weightedScalar.mo_ini(*oArgs)
 
         self.__M = self.__singleScalar.M
         if self.__M != 2:
@@ -134,7 +131,10 @@ class nise(bb_interface):
         for i in range(self.__M):
             singleS = copy.copy(self.__singleScalar)
             logger.debug('Finding '+str(i)+'th individual minima')
-            singleS.mo_optimize(i,*oArgs)
+            try:
+                singleS.optimize(i, hotstart=self.hotstart)
+            except:
+                singleS.optimize(i)
             neigO.append(singleS.objs)
             self.__solutionsList.append(singleS)
             parents.append(singleS)
@@ -211,23 +211,25 @@ class nise(bb_interface):
                 index = bisect.bisect_left([c.importance for c in self.__candidatesList],boxW.importance)
                 self.__candidatesList.insert(index,boxW)
 
-    def optimize(self, *oArgs):
+    def optimize(self):
         """Find a set of efficient solutions
 
         Parameters
         ----------
-        oArgs: tuple
-            Arguments used by baseOpt
         Returns
         -------
         """
         start = time.clock()
-        self.inicialization(oArgs)
+        self.inicialization()
 
         node = self.select()
 
-        while node!=None and ((self.upperBound-self.lowerBound)/self.upperBound>self.gap or len(self.solutionsList)<self.minsize):
-            solution = node.optimize(oArgs,solutionsList = self.solutionsList+self.__solutionsAux)
+        while node!=None and \
+              self.__currImp/self.__maxImp>self.target_gap and \
+              len(self.solutionsList)<self.target_size and \
+              (self.__currImp/self.__maxImp>self.min_gap or len(self.solutionsList)<self.min_size):
+                  
+            solution = node.optimize(hotstart=self.hotstart)
             self.update(node, solution)
             node = self.select()
         self.__fit_runtime = time.clock() - start

@@ -53,10 +53,10 @@ class node_interface(metaclass=ABCMeta):
 
 
 class bb_interface(mo_show, metaclass=ABCMeta):
-    @property
-    @abstractmethod
-    def gap(self):
-        pass
+    #@property
+    #@abstractmethod
+    #def gap(self):
+    #    pass
 
 
     @property
@@ -92,6 +92,12 @@ class bb_interface(mo_show, metaclass=ABCMeta):
     @property
     def fit_runtime(self):
         return self.__fit_runtime
+    
+    @abstractmethod
+    def optimize(self):
+        """Update gobal variables"""
+        pass
+    
     '''
     def optimize(self, *oArgs):
         """Find a set of efficient solutions

@@ -10,11 +10,6 @@ class scalar_interface(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def optMessage(self):
-        pass
-
-    @property
-    @abstractmethod
     def feasible(self):
         pass
 
@@ -34,18 +29,7 @@ class scalar_interface(metaclass=ABCMeta):
         pass
         
     @abstractmethod
-    def mo_ini(self, *args):
-        """Computes the initial parameters to mo scalarization."""
-        pass
-    '''
-    def ini(self, *args):
-        self.mo_ini(*args)
-        if not (hasattr(self, 'K') and hasattr(self, 'xdim')):
-            raise ValueError("The mo_ini implementation must set K and xdim attributes")
-    '''
-
-    @abstractmethod
-    def mo_optimize(self, *args):
+    def optimize(self, *args):
         """Calculates the a multiobjective scalarization"""
         pass
 
