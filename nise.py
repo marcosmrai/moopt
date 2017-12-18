@@ -207,7 +207,7 @@ class nise(bb_interface):
             #avoiding over representation of some regions
             maxdist = max(abs(parents[0].objs-parents[1].objs)/(self.__globalU-self.__globalL))
 
-            if not (boxW.w<0).any() and maxdist>1./self.__minsize:
+            if not (boxW.w<0).any() and maxdist>1./self.min_size:
                 index = bisect.bisect_left([c.importance for c in self.__candidatesList],boxW.importance)
                 self.__candidatesList.insert(index,boxW)
 
@@ -225,9 +225,10 @@ class nise(bb_interface):
         node = self.select()
 
         while node!=None and \
-              self.__currImp/self.__maxImp>self.target_gap and \
+              (self.upperBound-self.lowerBound)/self.upperBound>self.target_gap and \
               len(self.solutionsList)<self.target_size and \
-              (self.__currImp/self.__maxImp>self.min_gap or len(self.solutionsList)<self.min_size):
+              ((self.upperBound-self.lowerBound)/self.upperBound>self.min_gap or \
+               len(self.solutionsList)<self.min_size):
                   
             solution = node.optimize(hotstart=self.hotstart)
             self.update(node, solution)
