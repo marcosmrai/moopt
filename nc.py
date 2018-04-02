@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.DEBUG)
 
 class nc(bb_interface,mo_metrics):
-    def __init__(self, gap=0.1,  minsize=50, normalScalar = None, singleScalar = None, correction = 'else'):#correction = 'sanchis'):
+    def __init__(self, normalScalar = None, singleScalar = None, target_gap=0.0, 
+                 target_size=None, correction = 'else'):#correction = 'sanchis'):
         self.__solutionsList = scalar_interface
         if not isinstance(normalScalar, scalar_interface) or \
             not isinstance(singleScalar, scalar_interface) or not isinstance(singleScalar, single_interface):
@@ -19,8 +20,8 @@ class nc(bb_interface,mo_metrics):
 
         self.__normalScalar = normalScalar
         self.__singleScalar = singleScalar
-        self.__gap = gap
-        self.__minsize = minsize
+        self.__target_gap = target_gap
+        self.__target_size = target_size if target_size!=None else 100*self.__weightedScalar.M
         self.__correction = correction
 
         self.__lowerBound = 0
@@ -30,10 +31,10 @@ class nc(bb_interface,mo_metrics):
 
 
     @property
-    def gap(self): return self.__gap
+    def target_gap(self): return self.__target_gap
 
     @property
-    def minsize(self): return self.__minsize
+    def target_size(self): return self.__target_size
 
     @property
     def upperBound(self): return self.__upperBound
@@ -123,7 +124,7 @@ class nc(bb_interface,mo_metrics):
             self.__T = np.diag(1/(self.__globalU - self.__globalL))
             
         self.__Ndir = self.__normIndivB[:,[-1]]-self.__normIndivB[:,:-1]
-        mvec = self.__find_steps(self.__minsize)
+        mvec = self.__find_steps(self.target_size)
         self.__combs = [np.array(c) for c in self.__comb(mvec)]
 
 

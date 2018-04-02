@@ -9,8 +9,7 @@ def dominated(objs,solutionList):
             return True
     return False
 
-from deap.tools._hypervolume import hv
-
+#from deap.tools._hypervolume import hv
 
 class mo_metrics():
     def hipervolume(self, globalU, globalL):
