@@ -1,3 +1,19 @@
+"""
+Noninferior Set Estimation implementation
+"""
+"""
+Author: Marcos M. Raimundo <marcosmrai@gmail.com>
+        Laboratory of Bioinformatics and Bioinspired Computing
+        FEEC - University of Campinas
+        
+Reference:
+    Cohon, Jared L., Church, Richard L., Sheer, Daniel P.
+    Generating multiobjective trade‐offs: An algorithm for bicriterion problems
+    1979
+    Water Resources Research
+"""
+# License: BSD 3 clause
+
 import numpy as np
 import bisect
 import copy
@@ -36,7 +52,6 @@ class w_node(node_interface):
 
     @property
     def solution(self):
-        """Find the optimizer class"""
         return self.__solution
 
     @property
@@ -58,7 +73,6 @@ class w_node(node_interface):
         
 
     def optimize(self, hotstart = None):
-        """Find the optimizer class"""
         self.__solution = copy.copy(self.__weightedScalar)
         try:
             self.__solution.optimize(self.w, hotstart)
@@ -68,7 +82,6 @@ class w_node(node_interface):
 
 
     def __calcImportance(self):
-        """Calculates an importance of a box"""
         X = [[i for i in self.__normw(p.w)] for p in self.__parents]
         y = [self.__normf(p.objs)@self.__normw(p.w) for p in self.__parents]
 
@@ -157,11 +170,6 @@ class nise():
 
 
     def inicialization(self):
-        """ 
-        Returns
-        -------
-        """
-
         self.__M = self.__singleScalar.M
         if self.__M != 2:
             raise ValueError('NISE only support MOO problems with 2 objectives.')
@@ -202,11 +210,6 @@ class nise():
             return candidate
 
     def update(self, node, solution):
-        """
-        Parameters
-        ----------
-        """
-        ## If isn't in between don't explore anymore and generate a warning
         try:
             P = np.array([[i for i in p.objs] for p in node.parents])
             between = (solution.objs>=P.min(axis=0)).all() and (solution.objs<=P.max(axis=0)).any()
@@ -226,10 +229,6 @@ class nise():
 
 
     def __branch(self, node, solution):
-        """
-        Parameters
-        ----------
-        """
         for i in range(self.__M):
             parents = [p if j!=i else node.solution for j,p in enumerate(node.parents)]
             boxW = w_node(parents, self.__globalL, self.__globalU, self.__weightedScalar, norm=self.__norm)
@@ -242,12 +241,6 @@ class nise():
                 self.__candidatesList.insert(index,boxW)
 
     def optimize(self):
-        """
-        Parameters
-        ----------
-        Returns
-        -------
-        """
         start = time.clock()
         self.inicialization()
 

@@ -1,16 +1,30 @@
+"""
+Normal Constraint
+"""
+"""
+Author: Marcos M. Raimundo <marcosmrai@gmail.com>
+        Laboratory of Bioinformatics and Bioinspired Computing
+        FEEC - University of Campinas
+        
+Reference:
+    Messac, A., Mattson, C.
+    Normal constraint method with guarantee of even representation of complete Pareto frontier
+    2004
+    AIAA Journal
+"""
+
 import numpy as np
 import copy
 import logging
 import time
 
-from .mo_interface import bb_interface
 from moopt.scalarization_interface import scalar_interface, single_interface
-from .mo_utils import dominated, mo_metrics
+from .mo_utils import mo_metrics
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.DEBUG)
 
-class nc(bb_interface,mo_metrics):
+class nc(mo_metrics):
     def __init__(self, normalScalar = None, singleScalar = None, target_gap=0.0, 
                  target_size=None, correction = 'else'):#correction = 'sanchis'):
         self.__solutionsList = scalar_interface
@@ -88,19 +102,6 @@ class nc(bb_interface,mo_metrics):
         return ncomb
 
     def inicialization(self,oArgs):
-        """ Inicializate the objects of the scalarizations.
-            Compute the solutions from the individual minima.
-            Compute the global inferior bound and the global superior bound.
-            Create the first region.
-
-        Parameters
-        ----------
-        oArgs: tuple
-            Arguents used by baseOpt
-
-        Returns
-        -------
-        """
         self.__M = self.__singleScalar.M
         neigO=[]
         for i in range(self.__M):
@@ -127,46 +128,14 @@ class nc(bb_interface,mo_metrics):
         mvec = self.__find_steps(self.target_size)
         self.__combs = [np.array(c) for c in self.__comb(mvec)]
 
-
-
-    def select(self):
-        """ Selects the next regions to be optimized"""
-        bounded_ = True
-        while bounded_ and self.__candidatesList !=[]:
-            candidate = self.__candidatesList.pop()
-            bounded_ = dominated(candidate.l,self.solutionsList)
-            if bounded_:
-                self.__upperBound -= candidate.importance
-
-        if bounded_:
-            return None
-        else:
-            return candidate
-
-
     def update(self, solution):
-        """ Update the variables
-
-        Parameters
-        ----------
-        cand: box_scalar object
-            A box scalarization object already optimized and feasible
-        """
-        if not dominated(solution.objs,self.solutionsList) and solution.feasible:
+        #if not dominated(solution.objs,self.solutionsList) and solution.feasible:
+        if solution.feasible:
             self.__solutionsList.append(solution)
         logger.debug('New solution found. '+str(len(self.__solutionsList))+' solutions')
 
 
     def optimize(self, *oArgs):
-        """Find a set of efficient solutions
-
-        Parameters
-        ----------
-        oArgs: tuple
-            Arguments used by baseOpt
-        Returns
-        -------
-        """
         start = time.clock()
         self.inicialization(oArgs)
 

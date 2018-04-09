@@ -1,3 +1,19 @@
+"""
+Many Objective Noninferior Estimation
+"""
+"""
+Author: Marcos M. Raimundo <marcosmrai@gmail.com>
+        Laboratory of Bioinformatics and Bioinspired Computing
+        FEEC - University of Campinas
+        
+Reference:
+    Raimundo, Marcos M.
+    MONISE - Many Objective Noninferior Estimation
+    2017
+    arXiv
+"""
+# License: BSD 3 clause
+
 import numpy as np
 import copy
 import logging
@@ -67,13 +83,6 @@ class monise():
     def importances(self): return self.__importances
 
     def inicialization(self):
-        """ 
-        Parameters
-        ----------
-        Returns
-        -------
-        """
-
         self.__M = self.__singleScalar.M
         parents = []
         for i in range(self.__M):
@@ -101,11 +110,6 @@ class monise():
         return first_wsol
 
     def update(self, node, solution):
-        """
-        Parameters
-        ----------
-        """
-        
         self.solutionsList.append(solution)
         gap = self.currImp/self.__maxImp
         logger.info('Node nbr '+str(len(self.solutionsList))+' - importances - '
@@ -113,10 +117,6 @@ class monise():
                     +' '+str(node.importance)+' '+str(gap))
         
     def _next(self):
-        """ 
-        Parameters
-        ----------
-        """
         next_wsol = weight_solv(self.solutionsList, self.__globalL, self.__globalU, 
                                 self.__weightedScalar, goal = self.currImp*self.__red_fact, 
                                 time_limit = self.__node_time_limit, mip_gap = self.__node_gap, 
@@ -125,12 +125,6 @@ class monise():
         return next_wsol
 
     def optimize(self):
-        """
-        Parameters
-        ----------
-        Returns
-        -------
-        """
         start = time.clock()
         next_wsol = self.inicialization()
 

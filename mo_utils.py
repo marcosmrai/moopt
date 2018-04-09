@@ -1,3 +1,13 @@
+"""
+Multiobjective optmization utils
+"""
+"""
+Author: Marcos M. Raimundo <marcosmrai@gmail.com>
+        Laboratory of Bioinformatics and Bioinspired Computing
+        FEEC - University of Campinas
+"""
+# License: BSD 3 clause
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -9,30 +19,14 @@ def dominated(objs,solutionList):
             return True
     return False
 
-#from deap.tools._hypervolume import hv
+from deap.tools._hypervolume import hv
 
 class mo_metrics():
     def hipervolume(self, globalU, globalL):
-        """Calculates the hipervolume of a set of solutions
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        """
         value = hv.hypervolume([(solution.objs-globalL)/(globalU-globalL) for solution in self.solutionsList],(globalU-globalL)/(globalU-globalL))
         return value
 
     def inverse_hipervolume(self, globalU, globalL):
-        """Calculates the hipervolume of a set of solutions
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        """
         value = hv.hypervolume([(solution.objs-globalU)/(globalL-globalU) for solution in self.solutionsList],(globalL-globalU)/(globalL-globalU))
         return value
 
@@ -43,14 +37,6 @@ import matplotlib.pyplot as plt
 
 class mo_show():
     def print3D(self,path=None):
-        """Make a 3D figure of the multiobjective solutions
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        """
         fig = plt.figure()
         ax = Axes3D(fig)
         x = [solution.objs[0] for solution in self.solutionsList[:3]]
@@ -72,15 +58,6 @@ class mo_show():
 
 
     def print2D(self,path=None):
-        """Make a 3D figure of the multiobjective solutions
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        """
-
         #fig,ax = plt.subplots()
 
         plt.figure()

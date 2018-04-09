@@ -1,4 +1,13 @@
-# -*- coding: utf-8 -*-
+"""
+Scalarization Interface
+"""
+"""
+Author: Marcos M. Raimundo <marcosmrai@gmail.com>
+        Laboratory of Bioinformatics and Bioinspired Computing
+        FEEC - University of Campinas
+"""
+# License: BSD 3 clause
+
 from abc import ABCMeta, abstractmethod
 
 class scalar_interface(metaclass=ABCMeta):
@@ -30,15 +39,8 @@ class scalar_interface(metaclass=ABCMeta):
         
     @abstractmethod
     def optimize(self, *args):
-        """Calculates the a multiobjective scalarization"""
         pass
 
-    '''
-    def optimize(self, *args):
-        self.mo_optimize(*args)
-        if not (hasattr(self, 'optMessage') and hasattr(self, 'feasible') and hasattr(self, 'optimum') and hasattr(self, 'objs')):
-            raise ValueError("The mo_optimize implementation must set optMessage and optStatus and feasible and optimum and objs attributes")
-    '''
 
 class w_interface(metaclass=ABCMeta):
     ## - propertys

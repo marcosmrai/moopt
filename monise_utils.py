@@ -1,9 +1,19 @@
-# -*- coding: utf-8 -*-
 """
-Created on Fri May 20 18:57:08 2016
+Many Objective Noninferior Estimation utils
+"""
+"""
+Author: Marcos M. Raimundo <marcosmrai@gmail.com>
+        Laboratory of Bioinformatics and Bioinspired Computing
+        FEEC - University of Campinas
+        
+Reference:
+    Raimundo, Marcos M.
+    MONISE - Many Objective Noninferior Estimation
+    2017
+    arXiv
+"""
+# License: BSD 3 clause
 
-@author: marcos
-"""
 import numpy as np
 import copy
 
@@ -23,7 +33,6 @@ class weight_solv():
         self.__mip_gap = mip_gap
         self.__norm = norm
         if len(self.solutionsList)==self.M:
-        #if len(self.solutionsList)==0:
             self.__calcFirstW()
         else:
             self.__calcW(goal=goal)
@@ -42,7 +51,6 @@ class weight_solv():
 
     @property
     def solution(self):
-        """Find the optimizer class"""
         return self.__solution
 
     @property
@@ -50,7 +58,6 @@ class weight_solv():
         return self.__w
 
     def optimize(self, hotstart = None):
-        """Find the optimizer class"""
         self.__solution = copy.copy(self.__weightedScalar)
         try:
             self.__solution.optimize(self.w, hotstart)
@@ -85,6 +92,7 @@ class weight_solv():
         oidx = [i for i in range(self.M)]
         Nsols = len(self.solutionsList)
         assert self.M==Nsols, 'only fist W'
+        
         # Create a gurobi model
         prob = lp.LpProblem("max mean",lp.LpMaximize)
     
@@ -120,15 +128,11 @@ class weight_solv():
             if self.__norm:
                 w_ = w_/(self.__globalU-self.__globalL)
             w_ = w_/w_.sum()
-            #w_ = w_+(w_>0)*(w_<=10**-12)*10**-12
             fobj=lp.value(prob.objective)
             self.__w = np.array(w_)
             self.__importance = fobj
         else:
             raise('Somethig wrong')
-            #self.__w = np.random.rand(self.M)
-            #self.__w/=self.__w.sum()
-            #self.__importance = 0
 
     
 
@@ -214,10 +218,6 @@ class weight_solv():
             cbcs = lp.solvers.PULP_CBC_CMD(maxSeconds=self.__time_limit, fracGap=self.__mip_gap)
             prob.solve(cbcs, use_mps=False)
 
-        #print('kp',[lp.value(kp[i]) for i in list(range(Nsols))])
-        #print('nu',[lp.value(nu[i]) for i in oidx])
-        #print('mu',lp.value(v), lp.value(mu))
-
         feasible = False if prob.status in [-1, -2] else True
 
         if feasible:
@@ -225,7 +225,6 @@ class weight_solv():
             if self.__norm:
                 w_ = w_/(self.__globalU-self.__globalL)
             w_ = w_/w_.sum()
-            #w_ = w_+(w_>0)*(w_<=10**-12)*10**-12
             fobj=lp.value(prob.objective)
             self.__w = np.array(w_)
             self.__importance = fobj

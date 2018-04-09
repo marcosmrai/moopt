@@ -1,15 +1,20 @@
-# -*- coding: utf-8 -*-
 """
-Created on Fri May 20 18:57:08 2016
+Many Objective Noninferior Estimation utils
+"""
+"""
+Author: Marcos M. Raimundo <marcosmrai@gmail.com>
+        Laboratory of Bioinformatics and Bioinspired Computing
+        FEEC - University of Campinas
+        
+Reference:
+    Raimundo, Marcos M.
+    MONISE - Many Objective Noninferior Estimation
+    2017
+    arXiv
+"""
 
-@author: marcos
-"""
 import numpy as np
-import bisect
-from scipy import optimize as opt
 import itertools as it
-#from .mo_interface import node_interface
-#from ..scalarization.scalarization_interface import scalar_interface, w_interface
 import copy
 import gurobipy as grb
 
@@ -122,8 +127,6 @@ class w_node_heur():
         
         return bw, bmuB_, bobj
 
-
-#class w_node(node_interface):
 class w_node():
     def __init__(self, solutionsList, globalL, globalU, weightedScalar,goal=float('inf'), time_limit=30):
         self.__weightedScalar = weightedScalar
@@ -148,7 +151,6 @@ class w_node():
 
     @property
     def solution(self):
-        """Find the optimizer class"""
         return self.__solution
 
     @property
@@ -156,7 +158,6 @@ class w_node():
         return self.__w
 
     def optimize(self, oArgs, solutionsList = None):
-        """Find the optimizer class"""
         self.__solution = copy.copy(self.__weightedScalar)
         try:
             self.__solution.optimize(self.__w, solutionsList)
@@ -184,6 +185,7 @@ class w_node():
             w = w/w.sum()
             
         oidx = [i for i in range(self.M)]
+        
         # Create a gurobi model
         m = grb.Model("Heurs")
 
@@ -290,6 +292,7 @@ class w_node():
         
         oidx = [i for i in range(self.M)]
         Nsols = len(self.solutionsList)
+        
         # Create a gurobi model
         m = grb.Model("MONISE")
         
