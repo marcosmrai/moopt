@@ -12,6 +12,7 @@ Reference:
     2004
     AIAA Journal
 """
+# License: BSD 3 clause
 
 import numpy as np
 import copy

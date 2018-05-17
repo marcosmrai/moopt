@@ -23,7 +23,7 @@ MAXINT = 2000000000
 
 class weight_solv():
     def __init__(self, solutionsList, globalL, globalU, weightedScalar, 
-                 goal=float('inf'), time_limit=10, mip_gap=0.01, norm=True):
+                 goal=float('inf'), time_limit=10, mip_gap=0.01, norm=False):
         self.__weightedScalar = weightedScalar
         self.__M = solutionsList[0].M
         self.__globalL,self.__globalU=globalL, globalU
@@ -88,7 +88,7 @@ class weight_solv():
         
         return value,vec
 
-    def __calcFirstW(self, goal=1, eps=0.001):    
+    def __calcFirstW(self, goal=1, eps=0.01):    
         oidx = [i for i in range(self.M)]
         Nsols = len(self.solutionsList)
         assert self.M==Nsols, 'only fist W'
@@ -136,17 +136,17 @@ class weight_solv():
 
     
 
-    def __calcW(self, goal=1, eps=0.0):    
+    def __calcW(self, goal=1, eps=0.001):    
         oidx = [i for i in range(self.M)]
         Nsols = len(self.solutionsList)
         # Create a gurobi model
         prob = lp.LpProblem("max mean",lp.LpMaximize)
     
         # Creation of linear integer variables        
-        w = list(lp.LpVariable.dicts('w', oidx, lowBound=0, upBound=1, cat='Continuous').values())
-        uR = list(lp.LpVariable.dicts('uR', oidx, lowBound=0, upBound=1, cat='Continuous').values())
+        w = list(lp.LpVariable.dicts('w', oidx, lowBound=0, cat='Continuous').values())
+        uR = list(lp.LpVariable.dicts('uR', oidx, cat='Continuous').values())
         kp = list(lp.LpVariable.dicts('kp', list(range(Nsols)), cat='Continuous').values())
-        nu = list(lp.LpVariable.dicts('nu', oidx, cat='Continuous').values())
+        nu = list(lp.LpVariable.dicts('nu', oidx, lowBound=0, cat='Continuous').values())
             
         
         test = False

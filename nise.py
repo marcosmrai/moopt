@@ -71,11 +71,19 @@ class w_node(node_interface):
         else:
             return w
         
-
+    @property
+    def useful(self):
+        P = np.array([[i for i in p.objs] for p in self.parents])
+        between = (self.__solution.objs>=P.min(axis=0)).all() and (self.__solution.objs<=P.max(axis=0)).any()
+        equal = (self.__solution.objs==P[0,:]).all() or (self.__solution.objs==P[1,:]).all()
+        return between and not equal
+                
     def optimize(self, hotstart = None):
         self.__solution = copy.copy(self.__weightedScalar)
         try:
             self.__solution.optimize(self.w, hotstart)
+            if not self.useful:
+                raise('Not optimized.')
         except:
             self.__solution.optimize(self.w)
         return self.__solution
@@ -85,13 +93,14 @@ class w_node(node_interface):
         X = [[i for i in self.__normw(p.w)] for p in self.__parents]
         y = [self.__normf(p.objs)@self.__normw(p.w) for p in self.__parents]
 
+
+        r = self.__normf(self.__parents[0].objs)
         p = np.linalg.solve(X,y)
-        q = p-self.__normw(self.w)*self.__normw(self.w)@(p - self.__normf(self.__parents[0].objs))
         if self.__distance=='l2':
-            self.__importance = (self.__normw(self.w)@(q-p)\
+            self.__importance = (self.__normw(self.w)@(r-p)\
                                  /np.linalg.norm(self.__normw(self.w)))**2
         else:
-            self.__importance = self.__normw(self.w)@(q-p)
+            self.__importance = self.__normw(self.w)@(r-p)
 
     def __calcW(self):
         X = [[i for i in self.__normf(p.objs)]+[-1] for p in self.__parents]
@@ -103,29 +112,9 @@ class w_node(node_interface):
             w_ = w_/(self.__globalU-self.__globalL)
         
         self.__w = w_/w_.sum()
-        
-    '''
-    def __calcImportance(self):
-        """Calculates an importance of a box"""
-        X = [[i for i in p.w] for p in self.__parents]
-        y = [np.dot(p.objs, p.w) for p in self.__parents]
-
-        p = np.linalg.solve(X,y)
-        q = p-self.__w*(np.dot(self.__w, p) - np.dot(self.__w, self.__parents[0].objs))
-        if self.__distance=='l2':
-            self.__importance = (np.dot(self.__w,q-p)/np.linalg.norm(self.__w))**2
-        else:
-            self.__importance = np.dot(self.__w,q-p)
-
-    def __calcW(self):
-        X = [[i for i in p.objs]+[-1] for p in self.__parents]
-        X = np.array(X + [[1]*self.__M+[0]])
-        y = [0]*self.__M+[1]
-        self.__w = np.linalg.solve(X,y)[:self.__M]
-    '''
 
 class nise():
-    def __init__(self, weightedScalar = None, singleScalar = None, target_gap=0.0, target_size=None, hotstart=[], norm=False):
+    def __init__(self, weightedScalar = None, singleScalar = None, target_gap=0.0, target_size=None, hotstart=[], norm=True):
         self.__solutionsList = scalar_interface
         self.__solutionsList = w_interface
         if not isinstance(weightedScalar, scalar_interface) or not isinstance(weightedScalar, w_interface) or \
@@ -211,10 +200,7 @@ class nise():
 
     def update(self, node, solution):
         try:
-            P = np.array([[i for i in p.objs] for p in node.parents])
-            between = (solution.objs>=P.min(axis=0)).all() and (solution.objs<=P.max(axis=0)).any()
-            equal = (solution.objs==P[0,:]).all() or (solution.objs==P[1,:]).all()
-            if not between or equal:
+            if not node.useful:
                 raise('Solver warning.')
             self.__branch(node,solution)
             self.solutionsList.append(solution)
@@ -236,7 +222,7 @@ class nise():
             #avoiding over representation of some regions
             maxdist = max(abs(parents[0].objs-parents[1].objs)/(self.__globalU-self.__globalL))
 
-            if not (boxW.w<0).any() and maxdist>1./self.target_size:
+            if not (boxW.w<0).any():# and maxdist>1./self.target_size:
                 index = bisect.bisect_left([c.importance for c in self.__candidatesList],boxW.importance)
                 self.__candidatesList.insert(index,boxW)
 
@@ -250,6 +236,7 @@ class nise():
               self.currImp/self.maxImp>self.target_gap and \
               len(self.solutionsList)<self.target_size:
                   
+            #print(len(self.solutionsList))
             solution = node.optimize(hotstart=self.hotstart)
             self.update(node, solution)
             node = self.select()

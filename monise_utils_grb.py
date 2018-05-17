@@ -12,6 +12,7 @@ Reference:
     2017
     arXiv
 """
+# License: BSD 3 clause
 
 import numpy as np
 import itertools as it
