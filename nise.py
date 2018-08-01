@@ -236,7 +236,6 @@ class nise():
               self.currImp/self.maxImp>self.target_gap and \
               len(self.solutionsList)<self.target_size:
                   
-            #print(len(self.solutionsList))
             solution = node.optimize(hotstart=self.hotstart)
             self.update(node, solution)
             node = self.select()
