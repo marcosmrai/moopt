@@ -41,19 +41,11 @@ class nc():
                              20*self.__weightedScalar.M)
         self.__norm = norm
 
-        self.__lowerBound = 0
-        self.__upperBound = 1
         self.__solutionsList = []
         self.__candidatesList = []
 
     @property
     def targetSize(self): return self.__targetSize
-
-    @property
-    def upperBound(self): return self.__upperBound
-
-    @property
-    def lowerBound(self): return self.__lowerBound
 
     @property
     def solutionsList(self): return self.__solutionsList

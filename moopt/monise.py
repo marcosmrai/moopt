@@ -19,7 +19,6 @@ import copy
 import logging
 import time
 
-
 from moopt.scalarization_interface import scalar_interface, w_interface, single_interface
 
 from .monise_utils import weight_solv
@@ -66,13 +65,14 @@ class monise():
         self.__candidatesList = []
 
     def __del__(self):
-        del self.__solutionsList
+        if hasattr(self, '__solutionsList'):
+            del self.__solutionsList
 
     @property
-    def target_size(self): return self.__targetSize
+    def targetSize(self): return self.__targetSize
 
     @property
-    def target_gap(self): return self.__targetGap
+    def targetGap(self): return self.__targetGap
 
     @property
     def solutionsList(self): return self.__solutionsList

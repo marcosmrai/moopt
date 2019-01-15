@@ -10,8 +10,9 @@ Author: Marcos M. Raimundo <marcosmrai@gmail.com>
 
 from abc import ABCMeta, abstractmethod
 
+
 class scalar_interface(metaclass=ABCMeta):
-    ## - propertys
+    # - propertys
     @property
     @abstractmethod
     def M(self):
@@ -31,33 +32,35 @@ class scalar_interface(metaclass=ABCMeta):
     @abstractmethod
     def objs(self):
         pass
-    
+
     @property
     @abstractmethod
     def x(self):
         pass
-        
+
     @abstractmethod
     def optimize(self, *args):
         pass
 
 
 class w_interface(metaclass=ABCMeta):
-    ## - propertys
+    # - propertys
     @property
     @abstractmethod
     def w(self):
         pass
-    
+
+
 class single_interface(metaclass=ABCMeta):
-    ## - propertys
+    # - propertys
     @property
     @abstractmethod
     def w(self):
         pass
-    
+
+
 class box_interface(metaclass=ABCMeta):
-    ## - propertys
+    # - propertys
     @property
     @abstractmethod
     def u(self):
