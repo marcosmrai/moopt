@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 """
 Multiobjective interface
 """
@@ -8,7 +9,6 @@ Author: Marcos M. Raimundo <marcosmrai@gmail.com>
 """
 # License: BSD 3 clause
 
-from abc import ABCMeta, abstractmethod
 
 class node_interface(metaclass=ABCMeta):
     @abstractmethod
@@ -29,7 +29,8 @@ class node_interface(metaclass=ABCMeta):
         pass
 
     def dominated(self, solutionsList):
-        """ Finds if a box_scalar object is dominated (if the inferior limit is dominated)
+        """ Finds if a box_scalar object is dominated
+            (if the inferior limit is dominated)
             by any solution already optimized
 
         Parameters

@@ -5,7 +5,7 @@ Noninferior Set Estimation implementation
 Author: Marcos M. Raimundo <marcosmrai@gmail.com>
         Laboratory of Bioinformatics and Bioinspired Computing
         FEEC - University of Campinas
-        
+
 Reference:
     Cohon, Jared L., Church, Richard L., Sheer, Daniel P.
     Generating multiobjective trade‐offs: An algorithm for bicriterion problems
@@ -26,13 +26,13 @@ from .scalarization_interface import scalar_interface, w_interface, single_inter
 MAXINT = 200000000000000
 
 logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.DEBUG)
+logger.setLevel(level=logging.INFO)
 
 class w_node(node_interface):
     def __init__(self, parents, globalL, globalU, weightedScalar, distance='hp', norm=True):
         if not (isinstance(weightedScalar, scalar_interface) and isinstance(weightedScalar, w_interface)):
             raise ValueError(weightedScalar+' and must be a mo_problem implementation.')
-        
+
         self.__distance = distance
         self.__weightedScalar = weightedScalar
         self.__M = weightedScalar.M
@@ -57,27 +57,27 @@ class w_node(node_interface):
     @property
     def w(self):
         return self.__w
-    
+
     def __normf(self, obj):
         if self.__norm:
             return (obj-self.__globalL)/(self.__globalU-self.__globalL)
         else:
             return (obj-self.__globalL)
-        
+
     def __normw(self, w):
         if self.__norm:
             w_ = w*(self.__globalU-self.__globalL)
             return w_/w_.sum()
         else:
             return w
-        
+
     @property
     def useful(self):
         P = np.array([[i for i in p.objs] for p in self.parents])
         between = (self.__solution.objs>=P.min(axis=0)).all() and (self.__solution.objs<=P.max(axis=0)).any()
         equal = (self.__solution.objs==P[0,:]).all() or (self.__solution.objs==P[1,:]).all()
         return between and not equal
-                
+
     def optimize(self, hotstart = None):
         self.__solution = copy.copy(self.__weightedScalar)
         try:
@@ -106,11 +106,11 @@ class w_node(node_interface):
         X = [[i for i in self.__normf(p.objs)]+[-1] for p in self.__parents]
         X = np.array(X + [[1]*self.__M+[0]])
         y = [0]*self.__M+[1]
-        
+
         w_ = np.linalg.solve(X,y)[:self.__M]
         if self.__norm:
             w_ = w_/(self.__globalU-self.__globalL)
-        
+
         self.__w = w_/w_.sum()
 
 class nise():
@@ -138,7 +138,7 @@ class nise():
             del self.__solutionsList
         except:
             pass
-    
+
     @property
     def target_size(self): return self.__target_size
 
@@ -153,7 +153,7 @@ class nise():
 
     @property
     def solutionsList(self): return self.__solutionsList
-    
+
     @property
     def hotstart(self): return self.__hotstart+self.solutionsList
 
@@ -235,7 +235,7 @@ class nise():
         while node!=None and \
               self.currImp/self.maxImp>self.target_gap and \
               len(self.solutionsList)<self.target_size:
-                  
+
             solution = node.optimize(hotstart=self.hotstart)
             self.update(node, solution)
             node = self.select()
