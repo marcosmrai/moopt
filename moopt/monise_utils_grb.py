@@ -1,11 +1,11 @@
+# -*- coding: utf-8 -*-
 """
 Many Objective Noninferior Estimation utils
-"""
-"""
+
 Author: Marcos M. Raimundo <marcosmrai@gmail.com>
         Laboratory of Bioinformatics and Bioinspired Computing
         FEEC - University of Campinas
-        
+
 Reference:
     Raimundo, Marcos M.
     MONISE - Many Objective Noninferior Estimation
@@ -44,13 +44,13 @@ class w_node_heur():
         if type(w)==type(None) and type(uR)==type(None):
             w = np.random.rand(self.M)
             w = w/w.sum()
-        
+
         if type(w)!=type(None) and type(uR)!=type(None):
             raise('w and uR are not None')
-            
+
         searchw = type(w)==type(None)
         oidx = list(range(self.M))
-        
+
         # Create a gurobi model
         prob = lp.LpProblem("max mean heur",lp.LpMinimize)
 
@@ -75,7 +75,7 @@ class w_node_heur():
                 prob += expr>=cons*(1-eps)
 
             for i in oidx:
-                prob += uR[i]>=self.__norm(self.__globalL)[i]                
+                prob += uR[i]>=self.__norm(self.__globalL)[i]
 
         if searchw:
             wuR = lp.lpDot(w,uR)
@@ -89,9 +89,9 @@ class w_node_heur():
             prob.solve(grbs)
         except:
             prob.solve()
-        
+
         feasible = False if prob.status in [-1, -2, -3] else True
-                
+
         if feasible:
             muB_ = [0 if lp.value(mu)>=0 else 1 for mu in muBaux]
             w_ = np.array([lp.value(w[i]) if lp.value(w[i])>=0 else 0 for i in oidx])\
@@ -101,7 +101,7 @@ class w_node_heur():
             fobj=lp.value(prob.objective)
         else:
             w_ , uR_, muB_, fobj = [None, None, None, None]
-        
+
         return w_, uR_,muB_ ,fobj
 
     def __calcHeur(self, eps, free=False):
@@ -125,7 +125,7 @@ class w_node_heur():
                 bobj=fobj
             if stop:
                 break
-        
+
         return bw, bmuB_, bobj
 
 class w_node():
@@ -164,29 +164,29 @@ class w_node():
             self.__solution.optimize(self.__w, solutionsList)
         except:
             self.__solution.optimize(self.__w)
-        return self.__solution        
-    
+        return self.__solution
+
     def __norm(self, objs):
             ret = (objs-self.__globalL)/(self.__globalU-self.__globalL)
             return ret*(ret>10**-13)
-    
+
     def __calcD(self, solT, solList=None):
-        
+
         if solList==None:
             solList=self.solutionsList
-        
+
         vec = [max(self.__norm(solT.objs)-self.__norm(sol.objs)) for sol in solList]
         value = max(vec)
-        
+
         return value,vec
 
     def __lpHeur(self,w=None,uR=None,eps=0.01):
         if type(w)==type(None) and type(uR)==type(None):
             w = np.random.rand(self.M)
             w = w/w.sum()
-            
+
         oidx = [i for i in range(self.M)]
-        
+
         # Create a gurobi model
         m = grb.Model("Heurs")
 
@@ -197,7 +197,7 @@ class w_node():
 
         if type(uR)==type(None):
             uR = m.addVars(oidx,lb=0,ub=1,vtype=grb.GRB.CONTINUOUS,name='uR')
-        
+
         v = m.addVar(vtype=grb.GRB.CONTINUOUS)
 
         # Inherent constraints of this problem
@@ -230,7 +230,7 @@ class w_node():
         m.setObjective(wuR-v)
         m.update()
 
-        
+
         # Setting parameters for the guroby solver
         m.params.OutputFlag = False
         m.params.TimeLimit = 10
@@ -242,7 +242,7 @@ class w_node():
             m.computeIIS()
             m.write("constraints.ilp")
         pass
-                
+
         if feasible:
             muB_ = [0 if mu.getValue()>=0 else 1 for mu in muBaux]
             try:
@@ -259,7 +259,7 @@ class w_node():
             uR_ = None
             muB_ = None
             fobj = None
-        
+
         return w_, uR_,muB_ ,fobj
 
     def __calcHeur(self, eps, free=False):
@@ -283,26 +283,26 @@ class w_node():
                 bobj=fobj
             if stop:
                 break
-        
+
         return bw, bmuB_, bobj
 
 
     def __calcW(self, goal=1, eps=0.01):
         sw, smuB, sobj = self.__calcHeur(eps)
         #sobj = float('inf')
-        
+
         oidx = [i for i in range(self.M)]
         Nsols = len(self.solutionsList)
-        
+
         # Create a gurobi model
         m = grb.Model("MONISE")
-        
+
         # Creation of linear integer variables
         w = m.addVars(oidx,lb=0,ub=1,vtype=grb.GRB.CONTINUOUS,name='w')
         uR = m.addVars(oidx,lb=0,ub=1,vtype=grb.GRB.CONTINUOUS,name='uR')
         mu = m.addVars(list(range(Nsols)),vtype=grb.GRB.CONTINUOUS,name='mu')
         nu = m.addVars(oidx,vtype=grb.GRB.CONTINUOUS,name='nu')
-        
+
         test = False
         if test:
             muB = m.addVars(list(range(Nsols)),lb=0,ub=1,vtype=grb.GRB.CONTINUOUS,name='muB')
@@ -316,10 +316,10 @@ class w_node():
             if sobj!=float('inf'):
                 for i in oidx:
                     nuB[i].start = 0 if sw[i]==0 else 1
-        
+
         v = m.addVar(vtype=grb.GRB.CONTINUOUS)
         xi = m.addVar(vtype=grb.GRB.CONTINUOUS)
-        
+
         # Inherent constraints of this problem
         for value,sols in enumerate(self.solutionsList):
             expr=grb.quicksum(uR[i]*sols.w[i] for i in oidx)
@@ -327,19 +327,19 @@ class w_node():
             m.addConstr(expr>=cons*(1-eps))
 
         m.update()
-        
+
         for i in oidx:
             expr = uR[i]-grb.quicksum(mu[conN]*self.__norm(sols.objs)[i] for conN,sols in enumerate(self.solutionsList))-nu[i]+xi
             m.addConstr(expr==0)
 
-        
+
 
         for conN,sols in enumerate(self.solutionsList):
             d, dvec = self.__calcD(sols)
             expr=v-grb.quicksum(w[i]*self.__norm(sols.objs)[i] for i in oidx)
             m.addConstr(expr<=0)
             m.addConstr(expr>=-muB[conN])
-            
+
             m.addConstr(mu[conN]>=0)
             m.addConstr(mu[conN]<=(1-muB[conN]))
         m.update()
@@ -352,7 +352,7 @@ class w_node():
         for i in oidx:
             m.addConstr(w[i]>=0)
             m.addConstr(w[i]<=nuB[i])
-            
+
             m.addConstr(nu[i]>=0)
             m.addConstr(nu[i]<=(1-nuB[i]))
 
@@ -360,7 +360,7 @@ class w_node():
 
         m.addConstr(grb.quicksum(w[i] for i in oidx)==1)
         m.update()
-        
+
         m.addConstr(grb.quicksum(mu[i] for i in range(Nsols))==1)
         m.update()
 
@@ -373,14 +373,14 @@ class w_node():
         MAXINT = m.params.SolutionLimit
         m.params.SolutionLimit = 1
         m.optimize()
-        
+
         if self.__goal!=float('inf'):
             m.params.BestObjStop = -self.__goal
             pass
         m.params.TimeLimit = self.__time_limit
         m.params.SolutionLimit = MAXINT
         m.optimize()
-        
+
         feasible = True
         if m.status==3:
             feasible = False
@@ -412,7 +412,7 @@ if __name__ == '__main__':
             self.w = w
             self.M = objs.size
     solutionsList = []
-    for w in [[0.98,0.01,0.01],[0.01,0.98,0.01],[0.01,0.01,0.98],[0.33,0.33,0.34],[0.66,0.33,0.01], 
+    for w in [[0.98,0.01,0.01],[0.01,0.98,0.01],[0.01,0.01,0.98],[0.33,0.33,0.34],[0.66,0.33,0.01],
               [0.01,0.33,0.66],[0.33,0.01,0.66],[0.01,0.66,0.33],[0.2,0.5,0.3]]:
         w = np.array(w)
         alpha = -np.prod(w)/sum(a*b for a,b in it.combinations(w,2))

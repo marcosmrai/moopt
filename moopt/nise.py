@@ -1,7 +1,7 @@
+# -*- coding: utf-8 -*-
 """
 Noninferior Set Estimation implementation
-"""
-"""
+
 Author: Marcos M. Raimundo <marcosmrai@gmail.com>
         Laboratory of Bioinformatics and Bioinspired Computing
         FEEC - University of Campinas
@@ -20,21 +20,20 @@ import copy
 import logging
 import time
 
+import warnings
+
+
 from .scalarization_interface import scalar_interface, w_interface, single_interface
 
 MAXINT = 200000000000000
 
 logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.INFO)
+logger.setLevel(level=logging.DEBUG)
 
 
 class w_node():
     def __init__(self, parents, globalL, globalU, weightedScalar,
-                 distance='hp', norm=True):
-        if (not (isinstance(weightedScalar, scalar_interface) and
-                 not isinstance(weightedScalar, w_interface))):
-            raise ValueError(weightedScalar+''' and must be a mo_problem
-                             implementation.''')
+                 distance='l2', norm=True):
 
         self.__distance = distance
         self.__weightedScalar = weightedScalar
@@ -85,12 +84,9 @@ class w_node():
 
     def optimize(self, hotstart=None):
         self.__solution = copy.copy(self.__weightedScalar)
-        try:
-            self.__solution.optimize(self.w, hotstart)
-            if not self.useful:
-                raise('Not optimized.')
-        except:
-            self.__solution.optimize(self.w)
+        
+        self.__solution.optimize(self.w)
+            
         return self.__solution
 
     def __calcImportance(self):
@@ -119,7 +115,8 @@ class w_node():
 
 class nise():
     def __init__(self, weightedScalar=None, singleScalar=None,
-                 targetGap=0.0, targetSize=None, hotstart=[], norm=True):
+                 targetGap=0.0, targetSize=None, hotstart=[], norm=True, 
+                 timeLimit=float('inf'), objective='l2'):
         self.__solutionsList = scalar_interface
         self.__solutionsList = w_interface
         if (not isinstance(weightedScalar, scalar_interface) or
@@ -141,16 +138,18 @@ class nise():
         self.__hotstart = hotstart
         self.__solutionsList = []
         self.__candidatesList = []
+        self.__timeLimit = timeLimit
+        self.__objective = objective
 
     def __del__(self):
         if hasattr(self, '__solutionsList'):
             del self.__solutionsList
 
     @property
-    def target_size(self): return self.__target_size
+    def targetSize(self): return self.__targetSize
 
     @property
-    def target_gap(self): return self.__target_gap
+    def targetGap(self): return self.__targetGap
 
     @property
     def maxImp(self): return self.__maxImp
@@ -187,7 +186,8 @@ class nise():
         self.__globalU = neigO.max(0)
 
         self.__candidatesList = w_node(parents, self.__globalL, self.__globalU,
-                                       self.__weightedScalar, norm=self.__norm)
+                                       self.__weightedScalar, norm=self.__norm,
+                                       distance=self.__objective)
         self.__candidatesList = [self.__candidatesList]
 
         self.__maxImp = self.__candidatesList[-1].importance
@@ -206,47 +206,48 @@ class nise():
 
     def update(self, node, solution):
         try:
-            if not node.useful:
-                raise('Solver warning.')
             self.__branch(node, solution)
+            if not node.useful:
+                raise RuntimeError('Optimization issues.')
             self.solutionsList.append(solution)
-        except:
-            logger.debug('Not optimal solver or nonconvex problem')
+        except RuntimeError as msg:
+            warnings.warn('Not optimal solver or nonconvex problem')
 
         if self.__candidatesList != []:
             self.__currImp = self.__candidatesList[-1].importance
-
-        logger.debug('Current state ' + str(self.__maxImp) + ' ' +
-                     str(self.__currImp) + ' ' + str(node.importance))
+        gap = self.currImp/self.__maxImp
+        logger.debug(str(len(self.solutionsList))+'th solution' +
+                     ' - importance: ' + str(gap))
 
     def __branch(self, node, solution):
         for i in range(self.__M):
             parents = [p if j != i else node.solution
                        for j, p in enumerate(node.parents)]
             boxW = w_node(parents, self.__globalL, self.__globalU,
-                          self.__weightedScalar, norm=self.__norm)
+                          self.__weightedScalar, norm=self.__norm, 
+                          distance=self.__objective)
 
             # avoiding over representation of some regions
-            ''' maxdist = max(abs(parents[0].objs-parents[1].objs)
-            /(self.__globalU-self.__globalL))'''
-
-            if not (boxW.w < 0).any():  # and maxdist>1./self.target_size:
+            #maxdist = max(abs(parents[0].objs-parents[1].objs)/(self.__globalU-self.__globalL))
+            
+            if not (boxW.w < 0).any():# and maxdist>1./self.targetSize:
                 index = bisect.bisect_left([c.importance
                                             for c in self.__candidatesList],
                                            boxW.importance)
                 self.__candidatesList.insert(index, boxW)
 
     def optimize(self):
-        start = time.clock()
+        start = time.perf_counter()
         self.inicialization()
 
         node = self.select()
 
         while (node is not None and
-               self.currImp/self.maxImp > self.target_gap and
-               len(self.solutionsList) < self.target_size):
+               self.currImp/self.maxImp > self.targetGap and
+               len(self.solutionsList) < self.targetSize and
+               time.perf_counter()-start<self.__timeLimit):
 
             solution = node.optimize(hotstart=self.hotstart)
             self.update(node, solution)
             node = self.select()
-        self.__fit_runtime = time.clock() - start
+        self.__fit_runtime = time.perf_counter() - start

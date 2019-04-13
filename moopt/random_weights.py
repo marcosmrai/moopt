@@ -1,8 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 A posteriori multiobjective optimization method based on
 random weighted sum method with Smith simplex sampling.
-"""
-"""
+
 Author: Marcos M. Raimundo <marcosmrai@gmail.com>
         Laboratory of Bioinformatics and Bioinspired Computing
         FEEC - University of Campinas

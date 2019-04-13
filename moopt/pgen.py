@@ -1,7 +1,7 @@
+# -*- coding: utf-8 -*-
 """
 Noninferior Set Estimation implementation
-"""
-"""
+
 Author: Marcos M. Raimundo <marcosmrai@gmail.com>
         Laboratory of Bioinformatics and Bioinspired Computing
         FEEC - University of Campinas
@@ -150,10 +150,10 @@ class w_node():
         if self.__distance == 'l2':
             self.__importance = self.__normw(self._worig) @ (r - p)# /
                                  #np.linalg.norm(self.__normw(self._worig)))
-            print(self.__importance)
-            print(self.__normw(self._worig))
-            print(r)
-            print(p)
+            # print(self.__importance)
+            # print(self.__normw(self._worig))
+            # print(r)
+            # print(p)
             return
         else:
             self.__importance = self.__normw(self._worig)@(r-p)
@@ -191,9 +191,9 @@ class w_node():
         self.__w = w
 
 
-class ngen():
+class pgen():
     def __init__(self, weightedScalar=None, singleScalar=None,
-                 targetSize=None, norm=True):
+                 targetSize=None, norm=True, timeLimit=float('inf')):
         self.__solutionsList = scalar_interface
         self.__solutionsList = w_interface
         if (not isinstance(weightedScalar, scalar_interface) or
@@ -208,6 +208,7 @@ class ngen():
         self.__target_size = (targetSize if targetSize is not None else
                               20*self.__weightedScalar.M)
         self.__norm = norm
+        self.__timeLimit = timeLimit
 
         self.__convexHull = None
 
@@ -276,25 +277,18 @@ class ngen():
             self.__hullPoints = [self.__normf(sol.objs)
                                  for sol in self.solutionsList]
             self.__convexHull = ConvexHull(self.__hullPoints,
-                                           qhull_options='Q12')
+                                           qhull_options='Q12 QJ')
         else:
             self.__hullPoints += [self.__normf(solution.objs)]
             self.__convexHull = ConvexHull(self.__hullPoints,
-                                           qhull_options='Q12')
+                                           qhull_options='Q12 QJ')
 
         nfacets = self.__convexHull.simplices.shape[0]
         next_facet = None
-        neg = 0
-        pos = 0
         for i in range(nfacets):
             simplice = set(self.__convexHull.simplices[i])
 
             w_ch = self.__convexHull.equations[i][:-1]
-            if all(w_ch >= 0) or all(w_ch <= 0):
-                pos += 1
-            if any(w_ch < 0):
-                neg += 1
-
             if simplice in self.__selected:
                 continue
 
@@ -318,26 +312,24 @@ class ngen():
         self.__next_facet = next_facet
 
     def select(self):
+        if self.__candidatesList=={}:
+            return None
         self.__selected += [self.__next_facet]
         next_ = self.__candidatesList[(*self.__next_facet,)]
         self.__importances += [next_.importance]
         return next_
 
     def optimize(self):
-        start = time.clock()
+        start = time.perf_counter()
         self.inicialization()
 
         node = self.select()
 
         while (node is not None and
-               len(self.solutionsList) < self.target_size):
-
-            #print('o', node._worig*(self.__globalU-self.__globalL))
-            #print('w', node.w)
-            #print('r', node.r)
-            #print('p', node.p)
-            #print(node.r@(node._worig*(self.__globalU-self.__globalL)), node.p@(node._worig*(self.__globalU-self.__globalL)))
+               len(self.solutionsList) < self.target_size and
+               time.perf_counter()-start<self.__timeLimit):
+            
             solution = node.optimize()
             self.update(node, solution)
             node = self.select()
-        self.__fit_runtime = time.clock() - start
+        self.__fit_runtime = time.perf_counter() - start

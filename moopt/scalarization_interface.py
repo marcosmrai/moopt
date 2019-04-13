@@ -1,7 +1,7 @@
+# -*- coding: utf-8 -*-
 """
 Scalarization Interface
-"""
-"""
+
 Author: Marcos M. Raimundo <marcosmrai@gmail.com>
         Laboratory of Bioinformatics and Bioinspired Computing
         FEEC - University of Campinas

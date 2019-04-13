@@ -1,7 +1,7 @@
+# -*- coding: utf-8 -*-
 """
 Normal Constraint
-"""
-"""
+
 Author: Marcos M. Raimundo <marcosmrai@gmail.com>
         Laboratory of Bioinformatics and Bioinspired Computing
         FEEC - University of Campinas
@@ -27,7 +27,8 @@ logger.setLevel(level=logging.DEBUG)
 
 class nc():
     def __init__(self, normalScalar=None, singleScalar=None,
-                 targetSize=None, norm='sanchis'):  # sanchis simple no
+                 targetSize=None, norm='sanchis', refPoints='nc',
+                 timeLimit=float('inf')):  # sanchis simple no
         self.__solutionsList = scalar_interface
         if (not isinstance(normalScalar, scalar_interface) or
             not isinstance(singleScalar, scalar_interface) or
@@ -40,6 +41,8 @@ class nc():
         self.__targetSize = (targetSize if targetSize is not None else
                              20*self.__weightedScalar.M)
         self.__norm = norm
+        self.__refPoints = refPoints
+        self.__timeLimit = timeLimit
 
         self.__solutionsList = []
         self.__candidatesList = []
@@ -80,8 +83,8 @@ class nc():
 
     def __comb(self, mvec, comb=[]):
         if mvec == []:
-            bla = comb+[1-sum(comb)]
-            return [bla]
+            aux = comb+[1-sum(comb)]
+            return [aux]
         cmvec = copy.copy(mvec)
         m = cmvec.pop(0)
         delta = 1/(m-1)
@@ -91,6 +94,20 @@ class nc():
             if sum(auxcomb) > 1:
                 break
             ncomb += self.__comb(cmvec, auxcomb)
+        return ncomb
+    
+    def __rand(self):
+        '''
+        Note:
+        Simplex random sampling proposed in Smith 2009.
+        '''
+        ncomb = []
+        for i in range(self.targetSize-self.__M):
+            rnd = np.array(sorted([0] +
+                                  [np.random.rand() for i in range(self.__M-1)] +
+                                  [1]))
+            w = np.array([rnd[i+1]-rnd[i] for i in range(self.__M)])
+            ncomb += [w/w.sum()]
         return ncomb
 
     def inicialization(self, oArgs):
@@ -107,7 +124,6 @@ class nc():
         self.__globalL = neigO.min(axis=0)
         self.__globalU = neigO.max(axis=0)
 
-        print(self.__norm)
         if self.__norm == 'sanchis':
             self.__normIndivB = (np.ones((self.__M, self.__M)) -
                                  np.eye(self.__M))
@@ -124,8 +140,12 @@ class nc():
 
         self.__Ndir = self.__normIndivB[:, [-1]]-self.__normIndivB[:, :-1]
         mvec = self.__find_steps(self.targetSize)
-        self.__combs = [np.array(c) for c in self.__comb(mvec)]
-
+        
+        if self.__refPoints=='nc':
+            self.__combs = [np.array(c) for c in self.__comb(mvec)]
+        elif self.__refPoints=='random':
+            self.__combs = [np.array(c) for c in self.__rand(mvec)]
+            
     def update(self, solution):
         ''' if not dominated(solution.objs,self.solutionsList)
         and solution.feasible:'''
@@ -135,12 +155,14 @@ class nc():
                      ' solutions')
 
     def optimize(self, *oArgs):
-        start = time.clock()
+        start = time.perf_counter()
         self.inicialization(oArgs)
 
         for comb_ in self.__combs:
+            if time.perf_counter()-start>self.__timeLimit:
+                break
             X_ = self.__normIndivB @ comb_
             normalS = copy.copy(self.__normalScalar)
             normalS.optimize(X_, self.__Ndir, self.__globalL, self.__T)
             self.update(normalS)
-        self.__fit_runtime = time.clock() - start
+        self.__fit_runtime = time.perf_counter() - start

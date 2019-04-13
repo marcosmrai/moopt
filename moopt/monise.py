@@ -1,7 +1,7 @@
+# -*- coding: utf-8 -*-
 """
 Many Objective Noninferior Estimation
-"""
-"""
+
 Author: Marcos M. Raimundo <marcosmrai@gmail.com>
         Laboratory of Bioinformatics and Bioinspired Computing
         FEEC - University of Campinas
@@ -13,7 +13,6 @@ Reference:
     arXiv
 """
 # License: BSD 3 clause
-
 import numpy as np
 import copy
 import logging
@@ -56,8 +55,6 @@ class monise():
             self.__smoothCount = 1 if nodeTimeLimit == float('inf') else 5
         else:
             self.__smoothCount = smoothCount
-
-        print(self.__smoothCount)
 
         self.__maxImp = 1
         self.__hotstart = hotstart
@@ -102,6 +99,8 @@ class monise():
                 singleS.optimize(i)
             self.__solutionsList.append(singleS)
             parents.append(singleS)
+            #print(singleS.objs)
+            #input()
 
         objsM = np.array([[o for o in p.objs] for p in parents])
         self.__globalL = objsM.min(0)
@@ -119,10 +118,8 @@ class monise():
     def update(self, node, solution):
         self.solutionsList.append(solution)
         gap = self.currImp/self.__maxImp
-        logger.info('Node nbr ' + str(len(self.solutionsList)) +
-                    ' - importances - ' + str(self.__maxImp) + ' ' +
-                    str(self.currImp) + ' ' + str(self.__goal) + ' ' +
-                    str(node.importance) + ' ' + str(gap))
+        logger.debug(str(len(self.solutionsList))+'th solution' +
+                     ' - importance: ' + str(gap))
 
     def _next(self):
         next_wsol = weight_solv(self.solutionsList, self.__globalL,
@@ -134,14 +131,15 @@ class monise():
         return next_wsol
 
     def optimize(self):
-        start = time.clock()
+        start = time.perf_counter()
         next_wsol = self.inicialization()
 
         while (self.currImp / self.__maxImp > self.__targetGap and
                len(self.solutionsList) < self.__targetSize):
-
+            #print(next_wsol.w)
+            #input()
             solution = next_wsol.optimize(hotstart=self.hotstart)
             self.update(next_wsol, solution)
             next_wsol = self._next()
 
-        self.__fit_runtime = time.clock() - start
+        self.__fit_runtime = time.perf_counter() - start

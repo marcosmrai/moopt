@@ -1,8 +1,8 @@
+# -*- coding: utf-8 -*-
 """
 A posteriori multiobjective optimization method based on
 polyhedral approximation and dummy points.
-"""
-"""
+
 Author: Marcos M. Raimundo <marcosmrai@gmail.com>
         Laboratory of Bioinformatics and Bioinspired Computing
         FEEC - University of Campinas
@@ -229,7 +229,7 @@ class rennen():
         The importance of the found solutions.
     """
     def __init__(self, weightedScalar=None, singleScalar=None,
-                 targetSize=None,  norm=True):
+                 targetSize=None,  norm=True, timeLimit=float('inf')):
         self.__solutionsList = scalar_interface
         self.__solutionsList = w_interface
         if (not isinstance(weightedScalar, scalar_interface) or
@@ -244,6 +244,7 @@ class rennen():
         self.__targetSize = (targetSize if targetSize is not None else
                              20*self.__weightedScalar.M)
         self.__norm = norm
+        self.__timeLimit = timeLimit
 
         self.__solutionsList = []
         self.__candidatesList = {}
@@ -405,14 +406,15 @@ class rennen():
         return next_
 
     def optimize(self):
-        start = time.clock()
+        start = time.perf_counter()
         self.inicialization()
 
         node = self.select()
 
         while (node is not None and
-               len(self.solutionsList) < self.targetSize):
+               len(self.solutionsList) < self.targetSize and
+               time.perf_counter()-start<self.__timeLimit):
             solution = node.optimize()
             self.update(node, solution)
             node = self.select()
-        self.__fit_runtime = time.clock() - start
+        self.__fit_runtime = time.perf_counter() - start
