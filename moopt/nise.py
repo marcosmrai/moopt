@@ -90,27 +90,33 @@ class w_node():
         return self.__solution
 
     def __calcImportance(self):
-        X = [[i for i in self.__normw(p.w)] for p in self.__parents]
-        y = [self.__normf(p.objs)@self.__normw(p.w) for p in self.__parents]
-
-        r = self.__normf(self.__parents[0].objs)
-        p = np.linalg.solve(X, y)
-        if self.__distance == 'l2':
-            self.__importance = (self.__normw(self.w)@(r-p) /
-                                 np.linalg.norm(self.__normw(self.w)))**2
+        if self.__w is None:
+            self.__importance = 0
         else:
-            self.__importance = self.__normw(self.w)@(r-p)
+            X = [[i for i in self.__normw(p.w)] for p in self.__parents]
+            y = [self.__normf(p.objs)@self.__normw(p.w) for p in self.__parents]
+    
+            r = self.__normf(self.__parents[0].objs)
+            p = np.linalg.solve(X, y)
+            if self.__distance == 'l2':
+                self.__importance = (self.__normw(self.w)@(r-p) /
+                                     np.linalg.norm(self.__normw(self.w)))**2
+            else:
+                self.__importance = self.__normw(self.w)@(r-p)
 
     def __calcW(self):
         X = [[i for i in self.__normf(p.objs)]+[-1] for p in self.__parents]
         X = np.array(X + [[1]*self.__M+[0]])
         y = [0]*self.__M+[1]
 
-        w_ = np.linalg.solve(X, y)[:self.__M]
-        if self.__norm:
-            w_ = w_/(self.__globalU-self.__globalL)
+        try:
+            w_ = np.linalg.solve(X, y)[:self.__M]
+            if self.__norm:
+                w_ = w_/(self.__globalU-self.__globalL)
 
-        self.__w = w_/w_.sum()
+            self.__w = w_/w_.sum()
+        except np.linalg.LinAlgError:
+            self.__w = None
 
 
 class nise():
@@ -230,7 +236,7 @@ class nise():
             # avoiding over representation of some regions
             #maxdist = max(abs(parents[0].objs-parents[1].objs)/(self.__globalU-self.__globalL))
             
-            if not (boxW.w < 0).any():# and maxdist>1./self.targetSize:
+            if boxW.w is not None and not (boxW.w < 0).any():# and maxdist>1./self.targetSize:
                 index = bisect.bisect_left([c.importance
                                             for c in self.__candidatesList],
                                            boxW.importance)

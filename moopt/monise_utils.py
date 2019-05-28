@@ -210,7 +210,7 @@ class weight_solv():
                                   [np.random.rand() for i in range(self.M-1)]
                                   + [1]))
             w_ini = np.array([rnd[i+1]-rnd[i] for i in range(self.__M)])
-            w_ini = w/w.sum()
+            w_ini = w_ini/w_ini.sum()
             for wi, wii in zip(w, w_ini):
                 wi.start = wii
             grbs = lp.solvers.GUROBI(epgap=self.__mip_gap, SolutionLimit=1,
