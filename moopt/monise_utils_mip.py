@@ -47,9 +47,9 @@ class weight_solv():
     def importance(self):
         return self.__importance
 
-    @property
-    def parents(self):
-        return self.__parents
+    #@property
+    #def parents(self):
+    #    return self.__parents
 
     @property
     def solution(self):
@@ -136,7 +136,7 @@ class weight_solv():
         status = prob.optimize()
 
         #feasible = False if prob.status in [-1, -2] else True
-        feasible = status == OptimizationStatus.OPTIMAL or status == OptimizationStatus.FEASIBLE
+        feasible = status == mip.OptimizationStatus.OPTIMAL or status == mip.OptimizationStatus.FEASIBLE
 
         if feasible:
             #w_ = np.array([lp.value(w[i]) if lp.value(w[i]) >= 0 else 0
@@ -270,7 +270,7 @@ class weight_solv():
             
 
         #feasible = False if prob.status in [-1, -2] else True
-        feasible = status == OptimizationStatus.OPTIMAL or status == OptimizationStatus.FEASIBLE
+        feasible = status == mip.OptimizationStatus.OPTIMAL or status == mip.OptimizationStatus.FEASIBLE
 
         if feasible:
             #w_ = np.array([lp.value(w[i]) if lp.value(w[i]) >= 0 else 0
