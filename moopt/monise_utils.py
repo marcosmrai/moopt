@@ -98,7 +98,7 @@ class weight_solv():
         assert self.M == Nsols, 'only fist W'
 
         # Create a gurobi model
-        prob = lp.LpProblem("max mean", lp.LpMaximize)
+        prob = lp.LpProblem("max_mean", lp.LpMaximize)
         # prob = mip.Model(sense=mip.MAXIMIZE, solver_name=mip.GRB) 
 
         # Creation of linear integer variables
@@ -126,7 +126,7 @@ class weight_solv():
         # prob += v-mip.xsum(w*self.__normf(uR)[i] for i in range())
 
         try:
-            grbs = lp.solvers.GUROBI(msg=False, OutputFlag=False)
+            grbs = lp.GUROBI(msg=False, OutputFlag=False)
             prob.solve(grbs)
         except:
             prob.solve()
@@ -153,7 +153,7 @@ class weight_solv():
         oidx = [i for i in range(self.M)]
         Nsols = len(self.solutionsList)
         # Create a gurobi model
-        prob = lp.LpProblem("max mean", lp.LpMaximize)
+        prob = lp.LpProblem("max_mean", lp.LpMaximize)
         # prob = mip.Model(sense=mip.MAXIMIZE, solver_name=mip.GRB) 
 
         # Creation of linear integer variables
@@ -231,25 +231,25 @@ class weight_solv():
             w_ini = w_ini/w_ini.sum()
             for wi, wii in zip(w, w_ini):
                 wi.start = wii
-            grbs = lp.solvers.GUROBI(epgap=self.__mip_gap, SolutionLimit=1,
+            grbs = lp.GUROBI(epgap=self.__mip_gap, SolutionLimit=1,
                                      msg=False, OutputFlag=False, Threads=1)
             prob.solve(grbs)
 
             if self.__goal != float('inf'):
-                grbs = lp.solvers.GUROBI(timeLimit=self.__time_limit,
+                grbs = lp.GUROBI(timeLimit=self.__time_limit,
                                          epgap=self.__mip_gap,
                                          SolutionLimit=MAXINT,
                                          msg=False, BestObjStop=self.__goal,
                                          OutputFlag=False, Threads=1)
             else:
-                grbs = lp.solvers.GUROBI(timeLimit=self.__time_limit,
+                grbs = lp.GUROBI(timeLimit=self.__time_limit,
                                          epgap=self.__mip_gap,
                                          SolutionLimit=MAXINT,
                                          msg=False, OutputFlag=False,
                                          Threads=1)
             prob.solve(grbs)
         except:
-            cbcs = lp.solvers.PULP_CBC_CMD(maxSeconds=self.__time_limit,
+            cbcs = lp.COIN_CMD(maxSeconds=self.__time_limit,
                                            fracGap=self.__mip_gap, threads=1)
             prob.solve(cbcs, use_mps=False)
 
