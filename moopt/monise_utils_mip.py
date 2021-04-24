@@ -106,7 +106,7 @@ class weight_solv():
         # Creation of linear integer variables
         #w = list(lp.LpVariable.dicts('w', oidx, lowBound=0, upBound=1,
         #                             cat='Continuous').values())
-        w = [ prob.add_var(name='w', var_type=mip.CONTINUOUS, lb=0, up=1) for i in oidx ]
+        w = [prob.add_var(name='w', var_type=mip.CONTINUOUS, lb=0, ub=1) for i in oidx]
         
         uR = self.__globalL
 
@@ -128,7 +128,7 @@ class weight_solv():
         prob += v-mip.xsum(w*self.__normf(uR)[i] for i in oidx)
 
         #try:
-        #    grbs = lp.solvers.GUROBI(msg=False, OutputFlag=False)
+        #    grbs = lp.GUROBI(msg=False, OutputFlag=False)
         #    prob.solve(grbs)
         #except:
         prob.solve()
@@ -244,7 +244,7 @@ class weight_solv():
         for wi, wii in zip(w, w_ini):
             wi.start = wii
 
-        #grbs = lp.solvers.GUROBI(epgap=self.__mip_gap, SolutionLimit=1,
+        #grbs = lp.GUROBI(epgap=self.__mip_gap, SolutionLimit=1,
         #                         msg=False, OutputFlag=False, Threads=1)
 
         prob.max_gap = self.__mip_gap
@@ -252,7 +252,7 @@ class weight_solv():
         prob.max_solutions = MAXINT
 
         #if self.__goal != float('inf'):
-            #grbs = lp.solvers.GUROBI(timeLimit=self.__time_limit,
+            #grbs = lp.GUROBI(timeLimit=self.__time_limit,
             #                         epgap=self.__mip_gap,
             #                         SolutionLimit=MAXINT,
             #                         msg=False, BestObjStop=self.__goal,
@@ -260,7 +260,7 @@ class weight_solv():
 
 
         #else:
-            #grbs = lp.solvers.GUROBI(timeLimit=self.__time_limit,
+            #grbs = lp.GUROBI(timeLimit=self.__time_limit,
             #                         epgap=self.__mip_gap,
             #                         SolutionLimit=MAXINT,
             #                         msg=False, OutputFlag=False,
