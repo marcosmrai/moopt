@@ -156,7 +156,7 @@ class random_weights():
                            self.__weightedScalar, norm=self.__norm)
 
     def optimize(self):
-        start = time.clock()
+        start = time.perf_counter()
         self.inicialization()
 
         node = self.select()
@@ -167,4 +167,4 @@ class random_weights():
             solution = node.optimize()
             self.update(solution)
             node = self.select()
-        self.__fit_runtime = time.clock() - start
+        self.__fit_runtime = time.perf_counter() - start

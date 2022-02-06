@@ -85,7 +85,7 @@ class w_node_heur():
         prob += wuR-v
 
         try:
-            grbs = lp.solvers.GUROBI(timeLimit=10, epgap=0.1, msg=False)
+            grbs = lp.GUROBI(timeLimit=10, epgap=0.1, msg=False)
             prob.solve(grbs)
         except:
             prob.solve()
