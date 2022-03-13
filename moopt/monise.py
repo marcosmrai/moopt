@@ -99,8 +99,6 @@ class monise():
                 singleS.optimize(i)
             self.__solutionsList.append(singleS)
             parents.append(singleS)
-            #print(singleS.objs)
-            #input()
 
         objsM = np.array([[o for o in p.objs] for p in parents])
         self.__globalL = objsM.min(0)
@@ -136,8 +134,6 @@ class monise():
 
         while (self.currImp / self.__maxImp > self.__targetGap and
                len(self.solutionsList) < self.__targetSize):
-            #print(next_wsol.w)
-            #input()
             solution = next_wsol.optimize(hotstart=self.hotstart)
             self.update(next_wsol, solution)
             next_wsol = self._next()

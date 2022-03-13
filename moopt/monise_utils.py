@@ -247,4 +247,7 @@ class weight_solv():
             self.__w = np.array(w_)
             self.__importance = fobj
         else:
-            raise('Non-feasible solution')
+            #raise('Non-feasible solution')
+            self.__w = w_ini
+            self.__importance = 0
+            

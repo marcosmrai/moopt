@@ -28,7 +28,7 @@ from .scalarization_interface import scalar_interface, w_interface, single_inter
 MAXINT = 200000000000000
 
 logger = logging.getLogger(__name__)
-logger.setLevel(level=logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class w_node():
@@ -178,6 +178,7 @@ class nise():
         parents = []
         for i in range(self.__M):
             singleS = copy.copy(self.__singleScalar)
+            print('Finding '+str(i)+'th individual minima')
             logger.debug('Finding '+str(i)+'th individual minima')
             try:
                 singleS.optimize(i, hotstart=self.hotstart)
@@ -212,31 +213,38 @@ class nise():
 
     def update(self, node, solution):
         try:
-            self.__branch(node, solution)
+            self.solutionsList.append(solution)
+            if any([all(p.objs==node.solution.objs) for p in node.parents]):
+                raise RuntimeError('Optimization issues.')
             if not node.useful:
                 raise RuntimeError('Optimization issues.')
-            self.solutionsList.append(solution)
-        except RuntimeError as msg:
+            self.__branch(node, solution)
+        except RuntimeError:# as msg:
             warnings.warn('Not optimal solver or nonconvex problem')
 
         if self.__candidatesList != []:
             self.__currImp = self.__candidatesList[-1].importance
         gap = self.currImp/self.__maxImp
+        print((str(len(self.solutionsList))+'th solution' +
+                     ' - importance: ' + str(gap)))
         logger.debug(str(len(self.solutionsList))+'th solution' +
                      ' - importance: ' + str(gap))
 
     def __branch(self, node, solution):
+        
         for i in range(self.__M):
             parents = [p if j != i else node.solution
                        for j, p in enumerate(node.parents)]
             boxW = w_node(parents, self.__globalL, self.__globalU,
                           self.__weightedScalar, norm=self.__norm, 
                           distance=self.__objective)
+            
+            #print(boxW.w)
 
             # avoiding over representation of some regions
-            #maxdist = max(abs(parents[0].objs-parents[1].objs)/(self.__globalU-self.__globalL))
+            maxdist = max(abs(parents[0].objs-parents[1].objs)/(self.__globalU-self.__globalL))
             
-            if boxW.w is not None and not (boxW.w < 0).any():# and maxdist>1./self.targetSize:
+            if boxW.w is not None and not (boxW.w < 0).any() and maxdist>1./self.targetSize:
                 index = bisect.bisect_left([c.importance
                                             for c in self.__candidatesList],
                                            boxW.importance)
