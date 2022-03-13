@@ -60,7 +60,7 @@ class single_interface(metaclass=ABCMeta):
 
 
 class box_interface(metaclass=ABCMeta):
-    # - propertys
+    ## - propertys
     @property
     @abstractmethod
     def u(self):
