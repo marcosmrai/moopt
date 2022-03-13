@@ -12,7 +12,6 @@ def read(fname):
 
 
 def read_version():
-
     # Default value if we cannot find the __version__ field in the init file:
     version = "0.0.1"
 
@@ -66,10 +65,13 @@ params = dict(name="moopt",
 try:
     from setuptools import setup
 
-    params["install_requires"] = ["pulp>=1.6.9",
+    params["install_requires"] = ["pulp~=1.6.9",
+                                  "numpy>=1.20.2"
                                   "scipy>=0.13.3",
+                                  "mip>=1.13.0",
+                                  "gurobipy>=9.1.2"
                                   ]
-except:
+except ImportError:
     from distutils.core import setup
 
 setup(**params)

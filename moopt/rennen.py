@@ -137,11 +137,11 @@ class weight_iter():
 
         prob += lp.lpDot(self.__normw(self.w), uR)
 
-        grbs = lp.solvers.GUROBI(msg=False, OutputFlag=False, Threads=1)
+        grbs = lp.GUROBI(msg=False, OutputFlag=False, Threads=1)
         if grbs.available():
             prob.solve(grbs)
         else:
-            cbcs = lp.solvers.PULP_CBC_CMD(threads=1)
+            cbcs = lp.PULP_CBC_CMD(threads=1)
             prob.solve(cbcs, use_mps=False)
 
         feasible = False if prob.status in [-1, -2] else True
@@ -190,11 +190,11 @@ def convexCombination(points, point):
         else:
             prob += alpha[i] >= 0
 
-    grbs = lp.solvers.GUROBI(msg=False, OutputFlag=False, Threads=1)
+    grbs = lp.GUROBI(msg=False, OutputFlag=False, Threads=1)
     if grbs.available():
         prob.solve(grbs)
     else:
-        cbcs = lp.solvers.PULP_CBC_CMD(threads=1)
+        cbcs = lp.PULP_CBC_CMD(threads=1)
         prob.solve(cbcs, use_mps=False)
 
     feasible = False if prob.status in [-1, -2] else True
