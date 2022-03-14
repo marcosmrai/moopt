@@ -3,14 +3,19 @@ import copy
 import logging
 import time
 
-from moopt.mo_interface import node_interface
+#from moopt.mo_interface import node_interface
 from moopt.scalarization_interface import scalar_interface, single_interface, box_interface
-from moopt.mo_utils import dominated, mo_metrics
+
+def dominated(objs,solutionList):
+    for sol in solutionList:
+        if (sol.objs<=objs).all():
+            return True
+    return False
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level=logging.DEBUG)
 
-class box(node_interface):
+class box():
     def __init__(self,l, u, globalL, globalU, boxScalar=None):
         if not (isinstance(boxScalar, box_interface) and isinstance(boxScalar, scalar_interface)):
             raise ValueError(boxScalar+' and must be a mo_problem implementation.')
@@ -48,9 +53,9 @@ class box(node_interface):
         return ((self.__u-self.__l)/(self.__globalU-self.__globalL)).prod()
 
 
-class esse(mo_metrics):
+class esse():
     def __init__(self, boxScalar, singleScalar,
-                 target_gap=0.0, target_size=None):
+                 targetGap=0.0, targetSize=None):
         self.__solutionsList = scalar_interface
         self.__solutionsList = box_interface
         if not isinstance(boxScalar, box_interface) or not isinstance(boxScalar, scalar_interface) or \
@@ -59,8 +64,8 @@ class esse(mo_metrics):
 
         self.__boxScalar = boxScalar
         self.__singleScalar = singleScalar
-        self.__target_gap = target_gap
-        self.__target_size = target_size if target_size!=None else 100*self.__weightedScalar.M
+        self.__targetGap = targetGap
+        self.__targetSize = targetSize if targetSize!=None else 100*self.__weightedScalar.M
 
         self.__lowerBound = 0
         self.__upperBound = 1
@@ -70,10 +75,10 @@ class esse(mo_metrics):
 
 
     @property
-    def target_gap(self): return self.__target_gap
+    def targetGap(self): return self.__targetGap
 
     @property
-    def target_size(self): return self.__target_size
+    def targetSize(self): return self.__targetSize
 
     @property
     def upperBound(self): return self.__upperBound
@@ -199,8 +204,8 @@ class esse(mo_metrics):
         node = self.select()
 
         while node!=None and \
-              (self.upperBound-self.lowerBound)/self.upperBound>self.target_gap and\
-              len(self.solutionsList)<self.target_size:
+              (self.upperBound-self.lowerBound)/self.upperBound>self.targetGap and\
+              len(self.solutionsList)<self.targetSize:
             solution = node.optimize(solutionsList = self.solutionsList)
             self.update(node, solution)
             node = self.select()
