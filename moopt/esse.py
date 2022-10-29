@@ -198,7 +198,7 @@ class esse():
         Returns
         -------
         """
-        start = time.clock()
+        start = time.perf_counter()
         self.inicialization()
 
         node = self.select()
@@ -209,4 +209,4 @@ class esse():
             solution = node.optimize(solutionsList = self.solutionsList)
             self.update(node, solution)
             node = self.select()
-        self.__fit_runtime = time.clock() - start
+        self.__fit_runtime = time.perf_counter() - start
