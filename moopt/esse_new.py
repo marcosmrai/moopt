@@ -19,8 +19,8 @@ logger.setLevel(level=logging.DEBUG)
 
 class box():
     def __init__(self, l, u, globalL, globalU, boxScalar=None):
-        #if not (isinstance(boxScalar, box_interface) and isinstance(boxScalar, scalar_interface)):
-        #    raise ValueError(boxScalar+' and must be a mo_problem implementation.')
+        if not (isinstance(boxScalar, box_interface) and isinstance(boxScalar, scalar_interface)):
+            raise ValueError(boxScalar+' and must be a mo_problem implementation.')
         self.__boxScalar = boxScalar
         self.__l,self.__u,self.__globalL,self.__globalU=l, u, globalL, globalU
         self.__importance = self.__calcImportance()
@@ -55,7 +55,7 @@ class box():
         return self.__solution
 
     def __calcImportance(self):
-        return ((self.__u-self.__l)/(self.__globalU-self.__globalL)).prod()
+        return (self.__u-self.__l).prod()
         
 class BoxGenerator:
     def __init__(self, l, u, alpha, globalL, globalU, optimal=True):
@@ -65,15 +65,10 @@ class BoxGenerator:
         self.u = u
         self.alpha = alpha
         self.c = self.l + self.alpha*(self.u - self.l)
-        self.globalU = globalU
-        self.globalL = globalL
-        self.optimal = optimal
         
         self.parent_volume = np.prod((u-l)/(globalU-globalL))
         
-        self.order = np.argsort(self.globalU - self.globalL)
-        
-        self.n_comb = 1 if self.alpha>0.5 else self.M-self.optimal
+        self.n_comb = 1 if self.alpha>0.5 else self.M
         self.comb_gen = combinations(range(self.M), self.n_comb)
         self.calc_next_comb()
         
@@ -89,7 +84,7 @@ class BoxGenerator:
         except:
             if self.alpha>0.5:
                 self.n_comb+=1
-                if self.n_comb>self.M-self.optimal:
+                if self.n_comb>self.M:
                     self.next_comb = None
                     self.__max_volume = 0
                     return
@@ -116,7 +111,7 @@ class BoxGenerator:
         
         return newL, newU
         
-class boxCandidates():
+class boxCandidatesNew():
     def __init__(self, globalL, globalU, boxScalar=None):
         self.boxScalar = boxScalar
         self.globalL = globalL
@@ -139,7 +134,7 @@ class boxCandidates():
                    self.globalL, self.globalU,
                    boxScalar=self.boxScalar)
     
-class boxCandidatesEnum():
+class boxCandidates():
     def __init__(self, globalL, globalU, boxScalar=None):
         self.boxScalar = boxScalar
         self.globalL = globalL
@@ -156,22 +151,23 @@ class boxCandidatesEnum():
         
     def pop(self):        
         return self.cand_list.pop()
-        
+
 class esse():
-    def __init__(self, boxScalar, singleScalar, enum=False,
+    def __init__(self, boxScalar, singleScalar,
                  targetGap=0.0, targetSize=None):
         self.__solutionsList = scalar_interface
         self.__solutionsList = box_interface
-        #if not isinstance(boxScalar, box_interface) or not isinstance(boxScalar, scalar_interface) or \
-        #    not isinstance(singleScalar, scalar_interface) or not isinstance(singleScalar, single_interface):
-        #    raise ValueError('boxScalar and singleScalar must be a mo_problem implementation.')
+        if not isinstance(boxScalar, box_interface) or not isinstance(boxScalar, scalar_interface) or \
+            not isinstance(singleScalar, scalar_interface) or not isinstance(singleScalar, single_interface):
+            raise ValueError('boxScalar and singleScalar must be a mo_problem implementation.')
 
         self.__boxScalar = boxScalar
         self.__singleScalar = singleScalar
         self.__targetGap = targetGap
         self.__targetSize = targetSize if targetSize!=None else 100*self.__weightedScalar.M
-        self.__enum = enum
 
+        self.__lowerBound = 0
+        self.__upperBound = 1
         self.__solutionsList = []#solutionsList
         self.__candidatesList = []
         #self.__candidatesImp = []
@@ -211,7 +207,7 @@ class esse():
         neigO=[]
         for i in range(self.__M):
             logger.debug('Finding '+str(i)+'th individual minima')
-            singleS = copy.deepcopy(self.__singleScalar)
+            singleS = copy.copy(self.__singleScalar)#.copy()
             singleS.optimize(i)
             neigO.append(singleS.objs)
             self.__solutionsList.append(singleS)
@@ -219,16 +215,9 @@ class esse():
         neigO=np.array(neigO)
         self.__globalL = neigO.min(0)
         self.__globalU = neigO.max(0)
-        
-        self.__lowerBound = 0
-        self.__upperBound = 1
 
-        if self.__enum:
-            self.__candidatesList = boxCandidatesEnum(self.__globalL, self.__globalU,
-                                                      boxScalar=self.__boxScalar)
-        else:
-            self.__candidatesList = boxCandidates(self.__globalL, self.__globalU,
-                                                      boxScalar=self.__boxScalar)
+        self.__candidatesList = boxCandidates(self.__globalL, self.__globalU,
+                                              boxScalar=self.__boxScalar)
 
     def select(self):
         """ Selects the next regions to be optimized"""
@@ -262,8 +251,8 @@ class esse():
         if not explorable:
             self.__upperBound -= node.importance
         else:
-            self.__lowerBound += ((solution.u-solution.c)/(self.__globalU-self.__globalL)).prod()
-            self.__upperBound -= solution.optimum*((solution.c-solution.l)/(self.__globalU-self.__globalL)).prod()
+            self.__lowerBound += (solution.u-solution.c).prod()
+            self.__upperBound -= solution.optimum*(solution.c-solution.l).prod()
         gap = (self.upperBound-self.lowerBound)/self.upperBound
         logger.debug('Current state '+str(self.__upperBound)+' '+str(self.__lowerBound)+' '+str(gap))#+' '+str(solution.alpha))
 
@@ -300,9 +289,7 @@ class esse():
         while node!=None and \
               (self.upperBound-self.lowerBound)/self.upperBound>self.targetGap and\
               len(self.solutionsList)<self.targetSize:
-              
             solution = node.optimize(solutionsList = self.solutionsList)
             self.update(node, solution)
             node = self.select()
         self.__fit_runtime = time.clock() - start
-

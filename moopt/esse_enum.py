@@ -2,8 +2,6 @@ import numpy as np
 import copy
 import logging
 import time
-from sortedcontainers import SortedList
-from itertools import combinations
 
 #from moopt.mo_interface import node_interface
 from moopt.scalarization_interface import scalar_interface, single_interface, box_interface
@@ -51,114 +49,14 @@ class box():
 
         """Find the optimizer class"""
         self.__solution = copy.copy(self.__boxScalar)
-        self.__solution.optimize(self.__l,self.__u, solutionsList=solutionsList)
+        self.__solution.optimize(self.__l,self.__u)#, solutionsList=solutionsList)
         return self.__solution
 
     def __calcImportance(self):
         return ((self.__u-self.__l)/(self.__globalU-self.__globalL)).prod()
-        
-class BoxGenerator:
-    def __init__(self, l, u, alpha, globalL, globalU, optimal=True):
-        self.M = u.size
-        self.idx = 1 if optimal else 0
-        self.l = l
-        self.u = u
-        self.alpha = alpha
-        self.c = self.l + self.alpha*(self.u - self.l)
-        self.globalU = globalU
-        self.globalL = globalL
-        self.optimal = optimal
-        
-        self.parent_volume = np.prod((u-l)/(globalU-globalL))
-        
-        self.order = np.argsort(self.globalU - self.globalL)
-        
-        self.n_comb = 1 if self.alpha>0.5 else self.M-self.optimal
-        self.comb_gen = combinations(range(self.M), self.n_comb)
-        self.calc_next_comb()
-        
-    def __iter__(self):
-        return self
-    
-    def max_volume(self):
-        return self.__max_volume
-    
-    def calc_next_comb(self):
-        try:
-            self.next_comb = next(self.comb_gen)
-        except:
-            if self.alpha>0.5:
-                self.n_comb+=1
-                if self.n_comb>self.M-self.optimal:
-                    self.next_comb = None
-                    self.__max_volume = 0
-                    return
-            else:
-                self.n_comb-=1
-                if self.n_comb<1:
-                    self.next_comb = None
-                    self.__max_volume = 0
-                    return
-            self.comb_gen = combinations(range(self.M), self.n_comb)
-            self.next_comb = next(self.comb_gen)
-        self.__max_volume = self.parent_volume*(self.alpha**(self.M-self.n_comb))*((1-self.alpha)**(self.n_comb))
 
-    def __next__(self):
-        if self.next_comb is None:
-            raise StopIteration
-            
-        piv = np.zeros(self.M)
-        piv[list(self.next_comb)] = 1
-        newU=np.array([piv[j]*self.u[j] + (1 - piv[j])*self.c[j] for j in range(self.M)])
-        newL=np.array([piv[j]*self.c[j] + (1 - piv[j])*self.l[j] for j in range(self.M)])
-        
-        self.calc_next_comb()
-        
-        return newL, newU
-        
-class boxCandidates():
-    def __init__(self, globalL, globalU, boxScalar=None):
-        self.boxScalar = boxScalar
-        self.globalL = globalL
-        self.globalU = globalU
-        
-        self.cand_list = SortedList(key=lambda x: x.max_volume())
-            
-    def append(self, boxGen):
-        self.cand_list.add(boxGen)
-        
-    def pop(self):
-        current_max = self.cand_list[-1].max_volume()
-        currentL, currentU = next(self.cand_list[-1])
-        
-        if current_max!=self.cand_list[-1].max_volume():
-            boxGen = self.cand_list.pop()
-            self.cand_list.add(boxGen)
-            
-        return box(currentL, currentU,
-                   self.globalL, self.globalU,
-                   boxScalar=self.boxScalar)
-    
-class boxCandidatesEnum():
-    def __init__(self, globalL, globalU, boxScalar=None):
-        self.boxScalar = boxScalar
-        self.globalL = globalL
-        self.globalU = globalU
-        
-        self.cand_list = SortedList(key=lambda x: x.importance)
-            
-    def append(self, boxGen):
-        for currentL, currentU in boxGen:
-            box_ = box(currentL, currentU,
-                   self.globalL, self.globalU,
-                   boxScalar=self.boxScalar)
-            self.cand_list.add(box_)
-        
-    def pop(self):        
-        return self.cand_list.pop()
-        
-class esse():
-    def __init__(self, boxScalar, singleScalar, enum=False,
+class esse_enum():
+    def __init__(self, boxScalar, singleScalar,
                  targetGap=0.0, targetSize=None):
         self.__solutionsList = scalar_interface
         self.__solutionsList = box_interface
@@ -170,11 +68,11 @@ class esse():
         self.__singleScalar = singleScalar
         self.__targetGap = targetGap
         self.__targetSize = targetSize if targetSize!=None else 100*self.__weightedScalar.M
-        self.__enum = enum
 
-        self.__solutionsList = []#solutionsList
+        self.__lowerBound = 0
+        self.__upperBound = 1
+        self.__solutionsList = []
         self.__candidatesList = []
-        #self.__candidatesImp = []
 
 
     @property
@@ -211,7 +109,7 @@ class esse():
         neigO=[]
         for i in range(self.__M):
             logger.debug('Finding '+str(i)+'th individual minima')
-            singleS = copy.deepcopy(self.__singleScalar)
+            singleS = copy.copy(self.__singleScalar)#.copy()
             singleS.optimize(i)
             neigO.append(singleS.objs)
             self.__solutionsList.append(singleS)
@@ -219,22 +117,23 @@ class esse():
         neigO=np.array(neigO)
         self.__globalL = neigO.min(0)
         self.__globalU = neigO.max(0)
-        
-        self.__lowerBound = 0
-        self.__upperBound = 1
 
-        if self.__enum:
-            self.__candidatesList = boxCandidatesEnum(self.__globalL, self.__globalU,
-                                                      boxScalar=self.__boxScalar)
-        else:
-            self.__candidatesList = boxCandidates(self.__globalL, self.__globalU,
-                                                      boxScalar=self.__boxScalar)
+        #logger.info('globalU'+str(self.__globalU))
+        #logger.info('globalL'+str(self.__globalL))
+
+        self.__candidatesList = box(self.__globalL, self.__globalU, self.__globalL, self.__globalU, self.__boxScalar)
+        self.__candidatesList = [self.__candidatesList]
+        self.__candidatesImp = [self.__candidatesList[0].importance]
+
+
 
     def select(self):
         """ Selects the next regions to be optimized"""
         bounded_ = True
         while bounded_ and self.__candidatesList !=[]:
-            candidate = self.__candidatesList.pop()
+            index = np.argmax(self.__candidatesImp)
+            self.__candidatesImp.pop(index)
+            candidate = self.__candidatesList.pop(index)
             bounded_ = dominated(candidate.l,self.solutionsList)
             if bounded_:
                 self.__upperBound -= candidate.importance
@@ -276,9 +175,18 @@ class esse():
         cand: box_scalar object
             A box scalarization object already optimized and feasible
         """
-        currBoxGen = BoxGenerator(solution.l, solution.u, solution.alpha, self.__globalL, self.__globalU)
-        self.__candidatesList.append(currBoxGen)
+        for i in range(solution.optimum,2**(self.__M)-1):
+            piv = [int(j) for j in '0'*(self.__M-len(bin(i)[2:]))+bin(i)[2:]]
+            newU=np.array([piv[j]*solution.u[j] + (1-piv[j])*solution.c[j] for j in range(self.__M)])
+            newL=np.array([piv[j]*solution.c[j]+(1-piv[j])*solution.l[j] for j in range(self.__M)])
 
+            boxS = box(newL, newU, self.__globalL, self.__globalU, self.__boxScalar)
+
+            if dominated(boxS.l,self.solutionsList):
+                self.__upperBound -= boxS.importance
+            else:
+                self.__candidatesList.append(boxS)
+                self.__candidatesImp.append(boxS.importance)
 
     def optimize(self):
         """Find a set of efficient solutions
@@ -293,16 +201,12 @@ class esse():
         start = time.clock()
         self.inicialization()
 
-        node = box(self.__globalL, self.__globalU,
-                   self.__globalL, self.__globalU,
-                   boxScalar=self.__boxScalar)
+        node = self.select()
 
         while node!=None and \
               (self.upperBound-self.lowerBound)/self.upperBound>self.targetGap and\
               len(self.solutionsList)<self.targetSize:
-              
             solution = node.optimize(solutionsList = self.solutionsList)
             self.update(node, solution)
             node = self.select()
         self.__fit_runtime = time.clock() - start
-

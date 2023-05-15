@@ -20,7 +20,7 @@ import time
 
 from moopt.scalarization_interface import scalar_interface, w_interface, single_interface
 
-from .monise_utils import weight_solv
+from .monise_utils_mip import weight_solv
 #from .monise_utils import weight_solv
 
 logger = logging.getLogger(__name__)

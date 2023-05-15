@@ -103,6 +103,8 @@ class weight_solv():
         except:
             prob = mip.Model(sense=mip.MAXIMIZE)
 
+        prob.verbose = 0
+
         # Creation of linear integer variables
         #w = list(lp.LpVariable.dicts('w', oidx, lowBound=0, upBound=1,
         #                             cat='Continuous').values())
@@ -123,15 +125,15 @@ class weight_solv():
             prob += w[i] >= 0 #manter
 
         #prob += lp.lpSum([w[i] for i in oidx]) == 1
-        prob += mip.xsum([w[i] for i in oidx]) == 1
+        prob += mip.xsum(w[i] for i in oidx) == 1
         #prob += v-lp.lpDot(w, self.__normf(uR))
-        prob += v-mip.xsum(w*self.__normf(uR)[i] for i in oidx)
+        prob += v-mip.xsum(w[i]*self.__normf(uR)[i] for i in oidx)
 
         #try:
         #    grbs = lp.GUROBI(msg=False, OutputFlag=False)
         #    prob.solve(grbs)
         #except:
-        prob.solve()
+        #prob.solve()
             
         status = prob.optimize()
 
@@ -145,7 +147,7 @@ class weight_solv():
             if self.__norm:
                 w_ = w_/(self.__globalU-self.__globalL)
             #fobj = lp.value(prob.objective)
-            fobj = prob.objective_values[0]
+            fobj = prob.objective_value
             self.__w = np.array(w_)
             self.__importance = fobj
         else:
@@ -160,78 +162,55 @@ class weight_solv():
             prob = mip.Model(sense=mip.MAXIMIZE, solver_name=mip.GRB) 
         except:
             prob = mip.Model(sense=mip.MAXIMIZE)
+            
+        prob.verbose = 0
 
         # Creation of linear integer variables
-        #w = list(lp.LpVariable.dicts('w', oidx, lowBound=0,
-        #                             cat='Continuous').values())
-        w = [ prob.add_var(name='w', var_type=mip.CONTINUOUS, lb=0) for i in oidx ]
-        
-        #uR = list(lp.LpVariable.dicts('uR', oidx, cat='Continuous').values())
-        uR = [ prob.add_var(name='uR', var_type=mip.CONTINUOUS) for i in oidx ]
-        
-        #kp = list(lp.LpVariable.dicts('kp', list(range(Nsols)),
-        #                              cat='Continuous').values())
-        kp = [ prob.add_var(name='kp', var_type=mip.CONTINUOUS) for i in oidx ]
-        
-        #nu = list(lp.LpVariable.dicts('nu', oidx, lowBound=0,
-        #                              cat='Continuous').values())
-        nu = [ prob.add_var(name='nu', var_type=mip.CONTINUOUS, lb=0) for i in oidx ]
+        w =  [ prob.add_var(name='w', lb=0, var_type=mip.CONTINUOUS) for i in oidx ]
+        uR = [ prob.add_var(name='uR', lb=-np.inf, var_type=mip.CONTINUOUS) for i in oidx ]
+        kp = [ prob.add_var(name='kp', lb=0, var_type=mip.CONTINUOUS) for i in range(Nsols) ]
+        nu = [ prob.add_var(name='nu', lb=0, var_type=mip.CONTINUOUS) for i in oidx ]
 
-
-        #kpB = list(lp.LpVariable.dicts('kpB', list(range(Nsols)),
-        #                               cat='Binary').values())
-        kpB = [ prob.add_var(name='kpB', var_type=mip.BINARY) for i in oidx ]
-        
-        #nuB = list(lp.LpVariable.dicts('nuB', oidx, cat='Binary').values())
+        kpB = [ prob.add_var(name='kpB', var_type=mip.BINARY) for i in range(Nsols) ]
         nuB = [ prob.add_var(name='nuB', var_type=mip.BINARY) for i in oidx ]
 
-        #v = lp.LpVariable('v', cat='Continuous')
-        v = prob.add_var(name='v')
-        #mu = lp.LpVariable('mu', cat='Continuous')
-        mu = prob.add_var(name='mu')
+        v = prob.add_var(name='v', lb=0, var_type=mip.CONTINUOUS)
+        mu = prob.add_var(name='mu', lb=-np.inf, var_type=mip.CONTINUOUS)
 
         # Inherent constraints of this problem
         for value, sols in enumerate(self.solutionsList):
-            #expr = lp.lpDot(self.__normw(sols.w), uR)
-            expr = mip.xsum(w[i]*self.__normw(sols.w)[i] for i in oidx)
-            cons = self.__normf(sols.objs) @ self.__normw(sols.w)
+            expr = mip.xsum(self.__normw(sols.w)[i]*uR[i] for i in oidx)
+            cons = self.__normw(sols.w) @ self.__normf(sols.objs)
             prob += expr >= cons*(1-eps)
 
         for i in oidx:
-            #expr = uR[i]-lp.lpSum([kp[conN]*self.__normf(sols.objs)[i]
-            #                       for conN, sols in
-            #                       enumerate(self.solutionsList)])-nu[i]+mu
             expr = uR[i]-mip.xsum([kp[conN]*self.__normf(sols.objs)[i]
                                    for conN, sols in
                                    enumerate(self.solutionsList)])-nu[i]+mu
             prob += expr == 0
 
+        for i in oidx:
+            prob += uR[i] >= self.__normf(self.__globalL)[i] #mantem
+
         bigC = max(self.__normf(self.__globalU))
 
         for conN, sols in enumerate(self.solutionsList):
-            # d, dvec = self.__calcD(sols)
-            #expr = v-lp.lpDot(w, self.__normf(sols.objs))
-            expr = v-mip.xsum(w[i]*self.__normf(sols.objs)[i] for i in oidx)
-            prob += -expr >= 0 #mantem
-            prob += -expr <= kpB[conN]*bigC #mantem
+            expr = mip.xsum(w[i]*self.__normf(sols.objs)[i] for i in oidx)-v
+            prob += expr >= 0 #mantem
+            prob += expr <= kpB[conN]*bigC #mantem
             prob += kp[conN] >= 0 #mantem
             prob += kp[conN] <= (1-kpB[conN]) #mantem
 
-        for i in oidx:
-            prob += uR[i] >= self.__normf(self.__globalL)[i] #mantem
+        prob += mip.xsum(w[i] for i in oidx) == 1
+        prob += mip.xsum(kp[i] for i in range(Nsols)) == 1
 
         for i in oidx:
             prob += w[i] >= 0 #mantem
             prob += w[i] <= nuB[i] #mantem
             prob += nu[i] >= 0 #mantem
             prob += nu[i] <= (1-nuB[i])*2*bigC #mantem
-
-        #prob += lp.lpSum([w[i] for i in oidx]) == 1
-        prob += mip.xsum(w[i] for i in oidx) == 1
-        #prob += lp.lpSum([kp[i] for i in range(Nsols)]) == 1
-        prob += mip.xsum(kp[i] for i in range(Nsols)) == 1
         
-        prob += mu
+        prob += mip.xsum([mu])
 
         # desigualdades válidas
         prob += mu <= v
@@ -241,8 +220,7 @@ class weight_solv():
                               + [1]))
         w_ini = np.array([rnd[i+1]-rnd[i] for i in range(self.__M)])
         w_ini = w_ini/w_ini.sum()
-        for wi, wii in zip(w, w_ini):
-            wi.start = wii
+        prob.start = [(wi, wii) for wi, wii in zip(w, w_ini)]
 
         #grbs = lp.GUROBI(epgap=self.__mip_gap, SolutionLimit=1,
         #                         msg=False, OutputFlag=False, Threads=1)
@@ -250,6 +228,7 @@ class weight_solv():
         prob.max_gap = self.__mip_gap
         prob.threads = 1
         prob.max_solutions = MAXINT
+        prob.max_seconds = self.__time_limit
 
         #if self.__goal != float('inf'):
             #grbs = lp.GUROBI(timeLimit=self.__time_limit,
@@ -266,7 +245,7 @@ class weight_solv():
             #                         msg=False, OutputFlag=False,
             #                         Threads=1)
 
-        status = prob.optimize(max_solutions=1)
+        status = prob.optimize()#max_solutions=None
             
 
         #feasible = False if prob.status in [-1, -2] else True
@@ -280,7 +259,7 @@ class weight_solv():
             if self.__norm:
                 w_ = w_/(self.__globalU-self.__globalL)
             #fobj = lp.value(prob.objective)
-            fobj = prob.objective_values[0]
+            fobj = prob.objective_value
             self.__w = np.array(w_)
             self.__importance = fobj
         else:
